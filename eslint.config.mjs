@@ -8,20 +8,20 @@ export default [
     files: ['**/*.{js,mjs,cjs}'],
     languageOptions: {
       globals: {
-        ...globals.node, 
-        ...globals.jest 
+        ...globals.node,
+        ...globals.jest,
       },
       parserOptions: {
         ecmaVersion: 'latest',
-        sourceType: 'module' 
-      }
-    }
+        sourceType: 'module',
+      },
+    },
   },
   {
     files: ['**/*.{js,mjs,cjs}'],
     plugins: {
       js,
-      prettier: pluginPrettier
+      prettier: pluginPrettier,
     },
     rules: {
       ...js.configs.recommended.rules,
@@ -29,19 +29,21 @@ export default [
       'no-console': 'warn',
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       'consistent-return': 'error',
-      'prettier/prettier': ['error', {
-        singleQuote: true,
-        trailingComma: 'es5',
-        printWidth: 100,
-        semi: true
-      }]
-    }
+      'prettier/prettier': [
+        'error',
+        {
+          singleQuote: true,
+          trailingComma: 'es5',
+          printWidth: 100,
+          semi: true,
+        },
+      ],
+    },
   },
   {
-
     files: ['**/*.test.js'],
     rules: {
-      'no-unused-expressions': 'off'
-    }
-  }
+      'no-unused-expressions': 'off',
+    },
+  },
 ];

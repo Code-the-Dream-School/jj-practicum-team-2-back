@@ -4,7 +4,12 @@
   "description": "Back-End Repo for Team 1 of Baboon/Bald Eagle Practicum",
   "main": "app.js",
   "scripts": {
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "prettier": "prettier . --check",
+    "prettier:fix": "prettier . --write",
+    "format": "npm run lint:fix && npm run prettier:fix"
   },
   "author": "",
   "license": "ISC",

@@ -1,4 +1,3 @@
-
 const express = require('express');
 const app = express();
 const cors = require('cors');
@@ -6,7 +5,7 @@ const favicon = require('express-favicon');
 const logger = require('morgan');
 
 require('dotenv').config();
-console.log("MONGO_URI from env:", process.env.MONGO_URI); 
+console.log('MONGO_URI from env:', process.env.MONGO_URI);
 const connectDB = require('./config/db');
 
 const mainRouter = require('./routes/mainRouter.js');

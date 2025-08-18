@@ -8,7 +8,11 @@ const connectDB = async () => {
     });
     console.log('MongoDB Connected');
   } catch (err) {
-    console.error(err.message);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('MongoDB connection error:', err);
+    } else {
+      console.error('MongoDB connection failed.');
+    }
     process.exit(1);
   }
 };

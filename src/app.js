@@ -13,7 +13,6 @@ app.use(express.static('public'));
 app.use(favicon(__dirname + '/public/favicon.ico'));
 
 require('dotenv').config();
-console.log('MONGO_URI from env:', process.env.MONGO_URI);
 const connectDB = require('./config/db.js');
 
 const mainRouter = require('./routes/mainRouter.js');

@@ -4,8 +4,6 @@ const cors = require('cors');
 const favicon = require('express-favicon');
 const logger = require('morgan');
 
-const mainRouter = require('./routes/mainRouter.js');
-
 // middleware
 app.use(cors());
 app.use(express.json());
@@ -14,7 +12,17 @@ app.use(logger('dev'));
 app.use(express.static('public'));
 app.use(favicon(__dirname + '/public/favicon.ico'));
 
+require('dotenv').config();
+const connectDB = require('./config/db.js');
+
+const mainRouter = require('./routes/mainRouter.js');
+const authRouter = require('./routes/authRoutes');
+
+// DB connection
+connectDB();
+
 // routes
 app.use('/api/v1', mainRouter);
+app.use('/api/v1/auth', authRouter);
 
 module.exports = app;

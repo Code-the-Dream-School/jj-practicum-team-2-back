@@ -1,4 +1,3 @@
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const attachCookiesToResponse = require('../util/attachCookiesToResponse');
@@ -85,7 +84,7 @@ exports.requestPasswordReset = async (req, res) => {
     }
 
     // generate password reset token and expiration time
-    const resetToken = generateToken(user._id);
+    const resetToken = generateToken(user._id, 'reset');
     const resetTokenExpiry = new Date(
       Date.now() + parseInt(process.env.JWT_RESET_PASSWORD_EXPIRES_IN) * 60 * 60 * 1000 // Convert hours to milliseconds
     );

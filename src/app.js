@@ -1,5 +1,7 @@
+require('dotenv').config();
 const express = require('express');
 const app = express();
+const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const favicon = require('express-favicon');
 const logger = require('morgan');
@@ -12,7 +14,8 @@ app.use(logger('dev'));
 app.use(express.static('public'));
 app.use(favicon(__dirname + '/public/favicon.ico'));
 
-require('dotenv').config();
+app.use(cookieParser(process.env.JWT_SECRET));
+
 const connectDB = require('./config/db.js');
 
 const mainRouter = require('./routes/mainRouter.js');

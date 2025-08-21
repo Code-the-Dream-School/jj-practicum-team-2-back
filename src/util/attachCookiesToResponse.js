@@ -1,7 +1,6 @@
 const jwt = require('jsonwebtoken');
 
 const attachCookiesToResponse = ({ res, user }, token) => {
- 
   const oneWeek = 1000 * 60 * 60 * 24 * 7;
 
   res.cookie('token', token, {

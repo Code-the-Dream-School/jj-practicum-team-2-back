@@ -20,7 +20,7 @@ exports.register = async (req, res) => {
     user = new User({ role, firstName, lastName, email, password });
     await user.save();
 
-    const token = generateToken(user._id, '1d')
+    const token = generateToken(user._id, '1d');
 
     // Attach cookies to the response
     attachCookiesToResponse({ res, user: user }, token);
@@ -28,13 +28,13 @@ exports.register = async (req, res) => {
     return res.status(201).json({
       message: 'User registered successfully',
       user: {
-      id: user._id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role
-      }
-      });
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+      },
+    });
   } catch (err) {
     return res.status(500).json({ message: 'Server error' });
   }
@@ -50,7 +50,7 @@ exports.login = async (req, res) => {
     const isMatch = await user.comparePassword(password); // use model method
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
-    const token = generateToken(user._id, '1d')
+    const token = generateToken(user._id, '1d');
 
     // Attach cookies to the response
     const tokenFromCokie = attachCookiesToResponse({ res, user }, token);
@@ -69,7 +69,7 @@ exports.login = async (req, res) => {
     // return res.status(500).json({ message: 'Server error' });
 
     console.error(err);
-     return res.status(500).json({ message: err.message });
+    return res.status(500).json({ message: err.message });
   }
 };
 
@@ -82,12 +82,11 @@ exports.logout = (req, res) => {
       secure: process.env.NODE_ENV === 'production', // keep in sync with attachCookiesToResponse
       sameSite: 'Strict',
       path: '/', // match path used in attachCookiesToResponse
-      });
+    });
     return res.json({ message: 'Logged out successfully' });
   } catch (err) {
     return res.json({ message: 'Logout failed' });
   }
-
 };
 
 // exports.requestPasswordReset = async (req, res) => {

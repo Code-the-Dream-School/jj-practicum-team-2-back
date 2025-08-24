@@ -1,6 +1,6 @@
-const jwt = require('jsonwebtoken');
+// jwt is used by the token parameter, no direct usage here
 
-const attachCookiesToResponse = ({ res, user }, token) => {
+const attachCookiesToResponse = ({ res, _user }, token) => {
   const oneWeek = 1000 * 60 * 60 * 24 * 7;
 
   res.cookie('token', token, {

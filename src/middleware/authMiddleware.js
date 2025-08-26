@@ -3,16 +3,21 @@ const jwt = require('jsonwebtoken');
 const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  let token;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.split(' ')[1].trim();
+  } else {
+    token = req.signedCookies.token;
+  }
+
+  if (!token) {
     return res.status(401).json({
       error: {
-        code: 'AUTH_INVALID_HEADER',
-        message: 'Invalid Authorization header. Use "Bearer <token>".',
+        code: 'AUTH_NO_TOKEN',
+        message: 'No token provided. Use Authorization header or cookie.',
       },
     });
   }
-
-  const token = authHeader.split(' ')[1].trim();
 
   if (!process.env.JWT_SECRET) {
     return res.status(500).json({
@@ -24,11 +29,38 @@ const authMiddleware = (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded;
     return next();
-  } catch (err) {
+  } catch (_err) {
     return res.status(401).json({
       error: { code: 'AUTH_INVALID_TOKEN', message: 'Invalid or expired token' },
     });
   }
 };
 
-module.exports = authMiddleware;
+const checkRole = (allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        error: { code: 'AUTH_NO_USER', message: 'User not authenticated' },
+      });
+    }
+
+    if (!req.user.role) {
+      return res.status(403).json({
+        error: { code: 'AUTH_NO_ROLE', message: 'User role not found in token' },
+      });
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        error: {
+          code: 'AUTH_INSUFFICIENT_PERMISSIONS',
+          message: `Access denied. Required roles: ${allowedRoles.join(', ')}`,
+        },
+      });
+    }
+
+    return next();
+  };
+};
+
+module.exports = { authMiddleware, checkRole };

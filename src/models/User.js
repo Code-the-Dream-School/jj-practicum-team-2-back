@@ -27,6 +27,8 @@ const userSchema = new mongoose.Schema(
       required: [true, 'Please provide password'],
       minlength: 6,
     },
+    passwordResetToken: String,
+    passwordResetTokenExpiry: Date,
     avatarUrl: String,
     bio: String, // mentor-specific
     zoomLink: String, // mentor-specific

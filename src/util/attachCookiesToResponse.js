@@ -8,7 +8,7 @@ const attachCookiesToResponse = ({ res, _user }, token) => {
     maxAge: oneWeek,
     secure: process.env.NODE_ENV === 'production',
     signed: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax', //controls whether the cookie is sent with cross-site requests
+    sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'strict', // More secure sameSite setting
   });
 };
 

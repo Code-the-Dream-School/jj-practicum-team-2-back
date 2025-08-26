@@ -61,9 +61,10 @@ async function runAuthenticationTests() {
     const loginResponse = await axios.post(`${BASE_URL}/auth/login`, loginData);
     logTest('Login with original password', true, loginResponse.data.message);
     logTest(
-      'JWT token generation',
-      loginResponse.data.token != null,
-      loginResponse.data.token ? 'Token received' : 'No token received'
+      'Cookie authentication',
+      loginResponse.headers['set-cookie'] &&
+        loginResponse.headers['set-cookie'].some((cookie) => cookie.includes('token=')),
+      loginResponse.headers['set-cookie'] ? 'Token cookie set' : 'No token cookie set'
     );
   } catch (error) {
     logTest('Login with original password', false, error.response?.data?.message || error.message);
@@ -121,9 +122,10 @@ async function runAuthenticationTests() {
         const newLoginResponse = await axios.post(`${BASE_URL}/auth/login`, newLoginData);
         logTest('New password login', true, 'Login with new password successful');
         logTest(
-          'New password token',
-          newLoginResponse.data.token != null,
-          'JWT token generated for new password'
+          'New password authentication',
+          newLoginResponse.headers['set-cookie'] &&
+            newLoginResponse.headers['set-cookie'].some((cookie) => cookie.includes('token=')),
+          'Token cookie set for new password'
         );
       } catch (error) {
         logTest('New password login', false, error.response?.data?.message || error.message);

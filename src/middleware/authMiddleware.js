@@ -36,4 +36,31 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-module.exports = authMiddleware;
+const checkRole = (allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        error: { code: 'AUTH_NO_USER', message: 'User not authenticated' },
+      });
+    }
+
+    if (!req.user.role) {
+      return res.status(403).json({
+        error: { code: 'AUTH_NO_ROLE', message: 'User role not found in token' },
+      });
+    }
+
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        error: {
+          code: 'AUTH_INSUFFICIENT_PERMISSIONS',
+          message: `Access denied. Required roles: ${allowedRoles.join(', ')}`,
+        },
+      });
+    }
+
+    return next();
+  };
+};
+
+module.exports = { authMiddleware, checkRole };

@@ -21,6 +21,10 @@ const sessionSchema = new Schema({
     type: Date,
     required: true,
   },
+  zoomLink: {
+    type: String,
+    required: true,
+  },
   duration: Number,
   type: {
     type: String,

@@ -6,7 +6,6 @@ const { authMiddleware } = require("../middleware/authMiddleware");
 
 console.log({ getUser, updateUser, deleteUser, getAllUsers, authMiddleware });
 
-//authMiddleware,
 
 // Profile CRUD
 router.get("/:id", authMiddleware, getUser);       // get single user

@@ -22,11 +22,13 @@ const connectDB = require('./config/db.js');
 
 const mainRouter = require('./routes/mainRouter.js');
 const authRouter = require('./routes/authRoutes');
+const sessionRoutes = require('./routes/sessionRoutes');
 
 connectDB();
 
 app.use('/api/v1', mainRouter);
 app.use('/api/v1/auth', authRouter);
+app.use('/api/sessions', sessionRoutes);
 
 app.use((req, res, _next) => {
   return res.status(404).json({ message: 'Route not found' });

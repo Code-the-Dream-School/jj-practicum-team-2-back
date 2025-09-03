@@ -38,7 +38,7 @@ exports.updateUser = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json(updatedUser);
+    return res.json(updatedUser);
   } catch (err) {
     // res.status(500).json({ error: "Server error" });
     return res.status(500).json({ message: err.message });

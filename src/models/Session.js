@@ -1,4 +1,3 @@
-
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
 
@@ -54,7 +53,7 @@ const sessionSchema = new Schema(
     },
     capacity: {
       type: Number,
-      default: 20, 
+      default: 20,
       min: [1, 'Capacity must be at least 1'],
     },
     participants: [
@@ -74,7 +73,7 @@ const sessionSchema = new Schema(
       default: false,
     },
   },
-  { timestamps: true } 
+  { timestamps: true }
 );
 
 sessionSchema.index({ mentorId: 1 });

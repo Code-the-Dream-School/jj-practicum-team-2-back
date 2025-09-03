@@ -85,7 +85,7 @@ sessionSchema.pre('save', function (next) {
   if (this.capacity && this.participants.length > this.capacity) {
     return next(new Error('Session is already full'));
   }
-  next();
+  return next();
 });
 
 module.exports = mongoose.model('Session', sessionSchema);

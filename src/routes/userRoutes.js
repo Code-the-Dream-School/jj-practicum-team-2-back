@@ -1,18 +1,16 @@
-
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const { getUser, updateUser, deleteUser, getAllUsers } = require("../controllers/userController");
-const { authMiddleware } = require("../middleware/authMiddleware");
+const { getUser, updateUser, deleteUser, getAllUsers } = require('../controllers/userController');
+const { authMiddleware } = require('../middleware/authMiddleware');
 
 console.log({ getUser, updateUser, deleteUser, getAllUsers, authMiddleware });
 
-
 // Profile CRUD
-router.get("/:id", authMiddleware, getUser);       // get single user
-router.put("/:id", authMiddleware, updateUser);    // update profile
-router.delete("/:id", authMiddleware, deleteUser); // delete profile
+router.get('/:id', authMiddleware, getUser); // get single user
+router.put('/:id', authMiddleware, updateUser); // update profile
+router.delete('/:id', authMiddleware, deleteUser); // delete profile
 
 // Admin only
-router.get("/", authMiddleware, getAllUsers);
+router.get('/', authMiddleware, getAllUsers);
 
 module.exports = router;

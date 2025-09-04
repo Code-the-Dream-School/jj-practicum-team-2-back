@@ -4,18 +4,20 @@ const {
   getAllSessions,
   getSessionById,
   updateSession,
-  deleteSession
+  deleteSession,
 } = require('../controllers/sessionController');
 const { authMiddleware, checkRole } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
 // Protected routes
-router.route('/')
+router
+  .route('/')
   .post(authMiddleware, checkRole('mentor', 'admin'), createSession)
   .get(authMiddleware, getAllSessions);
 
-router.route('/:id')
+router
+  .route('/:id')
   .get(authMiddleware, checkRole(['mentor', 'admin']), getSessionById)
   .put(authMiddleware, checkRole(['mentor', 'admin']), updateSession)
   .delete(authMiddleware, checkRole(['mentor', 'admin']), deleteSession);

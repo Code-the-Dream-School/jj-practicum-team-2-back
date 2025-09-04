@@ -1,21 +1,16 @@
-
 const Session = require('../models/Session');
 
-// @desc    Create a new session
-// @route   POST /api/sessions
-// @access  Mentor/Admin
+// Create a new session
 exports.createSession = async (req, res) => {
   try {
     const session = await Session.create(req.body);
-    res.status(201).json(session);
+    return res.status(201).json(session);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    return res.status(400).json({ message: error.message });
   }
 };
 
-// @desc    Get all sessions (with optional filters)
-// @route   GET /api/sessions
-// @access  Admin/Mentor/Student
+// Get all sessions
 exports.getAllSessions = async (req, res) => {
   try {
     const { classId, mentorId, status } = req.query;
@@ -29,15 +24,13 @@ exports.getAllSessions = async (req, res) => {
       .populate('mentorId', 'name email')
       .populate('classId', 'name');
 
-    res.status(200).json(sessions);
+    return res.status(200).json(sessions);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Get single session by ID
-// @route   GET /api/sessions/:id
-// @access  Admin/Mentor/Student
+// Get single session by ID
 exports.getSessionById = async (req, res) => {
   try {
     const session = await Session.findById(req.params.id)
@@ -48,15 +41,13 @@ exports.getSessionById = async (req, res) => {
       return res.status(404).json({ message: 'Session not found' });
     }
 
-    res.status(200).json(session);
+    return res.status(200).json(session);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
 
-// @desc    Update session
-// @route   PUT /api/sessions/:id
-// @access  Mentor/Admin
+// Update session
 exports.updateSession = async (req, res) => {
   try {
     const session = await Session.findById(req.params.id);
@@ -68,15 +59,13 @@ exports.updateSession = async (req, res) => {
     Object.assign(session, req.body);
     await session.save();
 
-    res.status(200).json(session);
+    return res.status(200).json(session);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    return res.status(400).json({ message: error.message });
   }
 };
 
-// @desc    Delete session (soft delete)
-// @route   DELETE /api/sessions/:id
-// @access  Admin/Mentor
+// Delete session (soft delete)
 exports.deleteSession = async (req, res) => {
   try {
     const session = await Session.findById(req.params.id);
@@ -88,8 +77,8 @@ exports.deleteSession = async (req, res) => {
     session.isDeleted = true;
     await session.save();
 
-    res.status(200).json({ message: 'Session deleted successfully' });
+    return res.status(200).json({ message: 'Session deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };

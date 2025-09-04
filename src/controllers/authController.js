@@ -56,8 +56,6 @@ exports.login = async (req, res) => {
 
     attachCookiesToResponse({ res, user }, token);
 
-    console.log(token);
-
     return res.json({
       message: 'Logged in successfully',
       user: {

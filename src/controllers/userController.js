@@ -9,7 +9,7 @@ exports.getOwnProfile = async (req, res) => {
   if (!profile) {
     return res.status(404).json({ error: 'User not found' });
   }
-  res.json({ profile });
+  return res.json({ profile });
 };
 
 // GET user profile

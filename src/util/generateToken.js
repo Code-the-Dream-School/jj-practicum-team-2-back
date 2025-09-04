@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 
-const generateToken = (userId, expiresIn = '7d', type = 'auth', role) => {
+const generateToken = (id, expiresIn = '7d', type = 'auth', role) => {
   if (!process.env.JWT_SECRET) {
     throw new Error('Missing JWT_SECRET in .env');
   }
@@ -23,7 +23,7 @@ const generateToken = (userId, expiresIn = '7d', type = 'auth', role) => {
     duration = process.env.JWT_LIFETIME || '7d';
   }
 
-  const payload = { userId, type, role };
+  const payload = { id, type, role };
 
   return jwt.sign(payload, secret, { expiresIn: duration });
 };

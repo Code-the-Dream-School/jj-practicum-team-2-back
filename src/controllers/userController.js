@@ -1,9 +1,23 @@
 const User = require('../models/User');
 
+// GET own profile
+exports.getOwnProfile = async (req, res) => {
+  const userId = req.user.userId;
+  const profile = await User.findById(userId).select(
+    '-password -passwordResetToken -passwordResetTokenExpiry'
+  );
+  if (!profile) {
+    throw new NotFoundError('The profile is not found');
+  }
+  res.json({ profile });
+};
+
 // GET user profile
 exports.getUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('-password');
+    const user = await User.findById(req.params.id).select(
+      '-password -passwordResetToken -passwordResetTokenExpiry'
+    );
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -17,6 +31,8 @@ exports.getUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     // Only allow update if the logged-in user is the same or admin
+    console.log(req.user.id);
+    console.log(req.params.id);
     if (req.user.id !== req.params.id && req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Not authorized to update this profile' });
     }
@@ -32,7 +48,7 @@ exports.updateUser = async (req, res) => {
       req.params.id,
       { $set: updates },
       { new: true, runValidators: true }
-    ).select('-password');
+    ).select('-password -passwordResetToken -passwordResetTokenExpiry');
 
     if (!updatedUser) {
       return res.status(404).json({ error: 'User not found' });

@@ -1,4 +1,3 @@
-
 const express = require('express');
 const {
   createSession,
@@ -7,18 +6,18 @@ const {
   updateSession,
   deleteSession
 } = require('../controllers/sessionController');
-const { protect, authorize } = require('../middleware/authMiddleware');
+const { authMiddleware, checkRole } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
 // Protected routes
 router.route('/')
-  .post(protect, authorize('mentor', 'admin'), createSession)
-  .get(protect, getAllSessions);
+  .post(authMiddleware, checkRole('mentor', 'admin'), createSession)
+  .get(authMiddleware, getAllSessions);
 
 router.route('/:id')
-  .get(protect, getSessionById)
-  .put(protect, authorize('mentor', 'admin'), updateSession)
-  .delete(protect, authorize('mentor', 'admin'), deleteSession);
+  .get(authMiddleware, checkRole(['mentor', 'admin']), getSessionById)
+  .put(authMiddleware, checkRole(['mentor', 'admin']), updateSession)
+  .delete(authMiddleware, checkRole(['mentor', 'admin']), deleteSession);
 
 module.exports = router;

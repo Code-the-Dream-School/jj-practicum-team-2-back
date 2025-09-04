@@ -30,7 +30,7 @@ connectDB();
 app.use('/api/v1', mainRouter);
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/user', userRouter);
-app.use('/api/sessions', sessionRoutes);
+app.use('/api/v1/sessions', sessionRoutes);
 
 app.use((req, res, _next) => {
   return res.status(404).json({ message: 'Route not found' });

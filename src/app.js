@@ -24,6 +24,7 @@ const mainRouter = require('./routes/mainRouter.js');
 const authRouter = require('./routes/authRoutes.js');
 const userRouter = require('./routes/userRoutes.js');
 const sessionRoutes = require('./routes/sessionRoutes');
+const classRoutes = require('./routes/classRoutes');
 
 connectDB();
 
@@ -31,6 +32,7 @@ app.use('/api/v1', mainRouter);
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/user', userRouter);
 app.use('/api/v1/sessions', sessionRoutes);
+app.use('/api/v1/classes', classRoutes);
 
 app.use((req, res, _next) => {
   return res.status(404).json({ message: 'Route not found' });

@@ -6,7 +6,15 @@ const cors = require('cors');
 const favicon = require('express-favicon');
 const logger = require('morgan');
 
-app.use(cors());
+// CORS configuration for cookie-based authentication
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Explicit origin instead of wildcard
+  credentials: true, // Allow cookies to be sent
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(logger('dev'));

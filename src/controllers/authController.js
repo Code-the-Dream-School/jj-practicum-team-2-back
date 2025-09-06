@@ -163,3 +163,31 @@ exports.resetPassword = async (req, res) => {
     return res.status(500).json({ message: 'Server error' });
   }
 };
+
+exports.getCurrentUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select(
+      '-password -passwordResetToken -passwordResetTokenExpiry'
+    );
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    return res.json({
+      user: {
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        avatarUrl: user.avatarUrl,
+        bio: user.bio,
+        zoomLink: user.zoomLink,
+      },
+    });
+  } catch (err) {
+    console.error('Get current user error:', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};

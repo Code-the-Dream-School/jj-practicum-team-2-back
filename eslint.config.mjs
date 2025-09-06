@@ -5,6 +5,17 @@ import configPrettier from 'eslint-config-prettier';
 
 export default [
   {
+    ignores: [
+      'node_modules/**',
+      'dist/**',
+      'build/**',
+      'coverage/**',
+      '*.log',
+      '.env',
+      'test-*.js', // Ignore test files from linting
+    ],
+  },
+  {
     files: ['**/*.{js,mjs,cjs}'],
     languageOptions: {
       globals: {
@@ -26,8 +37,15 @@ export default [
     rules: {
       ...js.configs.recommended.rules,
       ...configPrettier.rules,
-      'no-console': 'warn',
-      'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      'no-console': 'off', // Allow console.log in development
+      'no-unused-vars': [
+        'warn',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
       'consistent-return': 'error',
       'prettier/prettier': [
         'error',
@@ -44,6 +62,7 @@ export default [
     files: ['**/*.test.js'],
     rules: {
       'no-unused-expressions': 'off',
+      'no-console': 'off',
     },
   },
 ];

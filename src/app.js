@@ -8,8 +8,8 @@ const logger = require('morgan');
 
 // CORS configuration for cookie-based authentication
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Explicit origin instead of wildcard
-  credentials: true, // Allow cookies to be sent
+  origin: ['http://localhost:5173', process.env.FRONTEND_URL].filter(Boolean), // Remove any undefined values
+  credentials: true, // Allow credentials (cookies) to be sent
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };

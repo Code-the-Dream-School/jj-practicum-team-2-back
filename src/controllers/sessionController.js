@@ -1,4 +1,5 @@
 const Session = require('../models/Session');
+const { ensureDefaultClass } = require('./classController');
 
 // Create a new session
 exports.createSession = async (req, res) => {
@@ -78,6 +79,190 @@ exports.deleteSession = async (req, res) => {
     await session.save();
 
     return res.status(200).json({ message: 'Session deleted successfully' });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+// Get sessions for student dashboard
+exports.getStudentDashboard = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Ensure default class exists
+    const defaultClass = await ensureDefaultClass();
+
+    if (!defaultClass) {
+      return res.status(404).json({ message: 'No class found' });
+    }
+
+    // Get current week dates
+    const now = new Date();
+    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+    const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 6));
+    startOfWeek.setHours(0, 0, 0, 0);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    // Find sessions in default class for this week
+    const sessions = await Session.find({
+      classId: defaultClass._id,
+      isDeleted: false,
+      date: {
+        $gte: startOfWeek,
+        $lte: endOfWeek,
+      },
+    })
+      .populate('mentorId', 'firstName lastName')
+      .populate('classId', 'name')
+      .sort({ date: 1 });
+
+    // Categorize sessions
+    const currentTime = new Date();
+    const thisWeek = {
+      inProgress: sessions.filter((session) => session.status === 'ongoing'),
+      upcoming: sessions.filter(
+        (session) => session.status === 'scheduled' && session.date > currentTime
+      ),
+      past: sessions.filter(
+        (session) => session.status === 'completed' || session.date < currentTime
+      ),
+    };
+
+    // Get user's registered sessions
+    const myRegistrations = sessions
+      .filter((session) => session.participants.includes(userId))
+      .map((session) => session._id);
+
+    // Calculate stats
+    const stats = {
+      attendedThisWeek: thisWeek.past.filter((session) => session.participants.includes(userId))
+        .length,
+      upcomingThisWeek: thisWeek.upcoming.length,
+    };
+
+    return res.json({
+      thisWeek,
+      myRegistrations,
+      stats,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+// Get sessions for mentor dashboard
+exports.getMentorDashboard = async (req, res) => {
+  try {
+    const mentorId = req.user.id;
+
+    // Get mentor's sessions for current week
+    const now = new Date();
+    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
+    const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 6));
+    startOfWeek.setHours(0, 0, 0, 0);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    const sessions = await Session.find({
+      mentorId: mentorId,
+      isDeleted: false,
+      date: {
+        $gte: startOfWeek,
+        $lte: endOfWeek,
+      },
+    })
+      .populate('participants', 'firstName lastName')
+      .populate('classId', 'name')
+      .sort({ date: 1 });
+
+    // Categorize sessions
+    const currentTime = new Date();
+    const thisWeek = {
+      inProgress: sessions.filter((session) => session.status === 'ongoing'),
+      upcoming: sessions.filter(
+        (session) => session.status === 'scheduled' && session.date > currentTime
+      ),
+      pastSessions: sessions.filter(
+        (session) => session.status === 'completed' || session.date < currentTime
+      ),
+    };
+
+    // Calculate stats
+    const stats = {
+      totalSessions: sessions.length,
+      totalParticipants: sessions.reduce((sum, session) => sum + session.participants.length, 0),
+      upcomingSessions: thisWeek.upcoming.length,
+    };
+
+    return res.json({
+      thisWeek,
+      stats,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+// Register for a session
+exports.registerForSession = async (req, res) => {
+  try {
+    const sessionId = req.params.id;
+    const userId = req.user.id;
+
+    const session = await Session.findById(sessionId);
+
+    if (!session || session.isDeleted) {
+      return res.status(404).json({ message: 'Session not found' });
+    }
+
+    // Check if already registered
+    if (session.participants.includes(userId)) {
+      return res.status(400).json({ message: 'Already registered for this session' });
+    }
+
+    // Check capacity
+    if (session.participants.length >= session.capacity) {
+      return res.status(400).json({ message: 'Session is full' });
+    }
+
+    // Check if session is in the future
+    if (session.date <= new Date()) {
+      return res.status(400).json({ message: 'Cannot register for past sessions' });
+    }
+
+    // Add user to participants
+    session.participants.push(userId);
+    await session.save();
+
+    return res.json({ message: 'Successfully registered for session' });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+// Unregister from a session
+exports.unregisterFromSession = async (req, res) => {
+  try {
+    const sessionId = req.params.id;
+    const userId = req.user.id;
+
+    const session = await Session.findById(sessionId);
+
+    if (!session || session.isDeleted) {
+      return res.status(404).json({ message: 'Session not found' });
+    }
+
+    // Check if registered
+    if (!session.participants.includes(userId)) {
+      return res.status(400).json({ message: 'Not registered for this session' });
+    }
+
+    // Remove user from participants
+    session.participants = session.participants.filter(
+      (participantId) => participantId.toString() !== userId
+    );
+    await session.save();
+
+    return res.json({ message: 'Successfully unregistered from session' });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

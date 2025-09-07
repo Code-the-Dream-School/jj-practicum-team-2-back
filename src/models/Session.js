@@ -15,7 +15,11 @@ const sessionSchema = new Schema(
     classId: {
       type: Schema.Types.ObjectId,
       ref: 'Class',
-      required: [false, 'Session must belong to a class'],
+      required: [true, 'Session must belong to a class'],
+    },
+    courseName: {
+      type: String,
+      trim: true,
     },
     mentorId: {
       type: Schema.Types.ObjectId,

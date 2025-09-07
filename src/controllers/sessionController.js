@@ -96,11 +96,14 @@ exports.getStudentDashboard = async (req, res) => {
       return res.status(404).json({ message: 'No class found' });
     }
 
-    // Get current week dates
+    // Get current week dates - fix date mutation issue
     const now = new Date();
-    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
-    const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 6));
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(now);
+    endOfWeek.setDate(now.getDate() - now.getDay() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
 
     // Find sessions in default class for this week
@@ -116,7 +119,7 @@ exports.getStudentDashboard = async (req, res) => {
       .populate('classId', 'name')
       .sort({ date: 1 });
 
-    // Categorize sessions
+    // Categorize sessions - fix past sessions logic
     const currentTime = new Date();
     const thisWeek = {
       inProgress: sessions.filter((session) => session.status === 'ongoing'),
@@ -124,7 +127,11 @@ exports.getStudentDashboard = async (req, res) => {
         (session) => session.status === 'scheduled' && session.date > currentTime
       ),
       past: sessions.filter(
-        (session) => session.status === 'completed' || session.date < currentTime
+        (session) =>
+          session.status === 'completed' ||
+          (session.date < currentTime &&
+            session.status !== 'ongoing' &&
+            session.status !== 'scheduled')
       ),
     };
 
@@ -155,11 +162,14 @@ exports.getMentorDashboard = async (req, res) => {
   try {
     const mentorId = req.user.id;
 
-    // Get mentor's sessions for current week
+    // Get mentor's sessions for current week - fix date mutation issue
     const now = new Date();
-    const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay()));
-    const endOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 6));
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
     startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(now);
+    endOfWeek.setDate(now.getDate() - now.getDay() + 6);
     endOfWeek.setHours(23, 59, 59, 999);
 
     const sessions = await Session.find({

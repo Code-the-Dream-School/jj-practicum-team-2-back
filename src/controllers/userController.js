@@ -22,7 +22,7 @@ exports.getUser = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     return res.json(user);
-  } catch (err) {
+  } catch (_err) {
     return res.status(500).json({ error: 'Server error' });
   }
 };
@@ -55,7 +55,7 @@ exports.updateUser = async (req, res) => {
     }
 
     return res.json(updatedUser);
-  } catch (err) {
+  } catch (_err) {
     return res.status(500).json({ error: 'Server error' });
   }
 };
@@ -74,7 +74,7 @@ exports.deleteUser = async (req, res) => {
     }
 
     return res.json({ message: 'User deleted successfully' });
-  } catch (err) {
+  } catch (_err) {
     return res.status(500).json({ error: 'Server error' });
   }
 };
@@ -88,7 +88,7 @@ exports.getAllUsers = async (req, res) => {
 
     const users = await User.find().select('-password');
     return res.json(users);
-  } catch (err) {
+  } catch (_err) {
     return res.status(500).json({ error: 'Server error' });
   }
 };

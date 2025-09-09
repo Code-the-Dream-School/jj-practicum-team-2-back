@@ -55,7 +55,7 @@ exports.login = async (req, res) => {
     const token = generateToken(user._id, '7d', 'auth', user.role);
 
     attachCookiesToResponse({ res, user }, token);
-
+    console.log(token);
     return res.json({
       message: 'Logged in successfully',
       user: {

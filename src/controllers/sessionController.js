@@ -19,41 +19,41 @@ exports.createSession = async (req, res) => {
 
     const requiredFields = { title, classId, mentorId, date, zoomLink, duration, type };
     const missingFields = Object.entries(requiredFields)
-      .filter(([key, value]) => !value)
-      .map(([key]) => key);
+      .filter(([_key, value]) => !value)
+      .map(([_key]) => _key);
 
     if (missingFields.length > 0) {
       return res.status(400).json({
         message: 'Missing required fields',
         missingFields,
         providedFields: Object.keys(req.body),
-        requiredFields: Object.keys(requiredFields)
+        requiredFields: Object.keys(requiredFields),
       });
     }
 
     if (!mongoose.Types.ObjectId.isValid(classId)) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Invalid class ID',
         field: 'classId',
         value: classId,
-        expected: 'Valid MongoDB ObjectId'
+        expected: 'Valid MongoDB ObjectId',
       });
     }
     if (!mongoose.Types.ObjectId.isValid(mentorId)) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Invalid mentor ID',
-        field: 'mentorId', 
+        field: 'mentorId',
         value: mentorId,
-        expected: 'Valid MongoDB ObjectId'
+        expected: 'Valid MongoDB ObjectId',
       });
     }
 
     if (new Date(date) <= new Date()) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Session date must be in the future',
         field: 'date',
         value: date,
-        currentTime: new Date().toISOString()
+        currentTime: new Date().toISOString(),
       });
     }
 
@@ -80,12 +80,12 @@ exports.createSession = async (req, res) => {
         field: e.path,
         message: e.message,
         value: e.value,
-        kind: e.kind
+        kind: e.kind,
       }));
-      return res.status(400).json({ 
-        message: 'Validation failed', 
+      return res.status(400).json({
+        message: 'Validation failed',
         errors,
-        errorType: 'MongooseValidation'
+        errorType: 'MongooseValidation',
       });
     }
 
@@ -93,20 +93,20 @@ exports.createSession = async (req, res) => {
       return res.status(400).json({
         message: 'Duplicate entry',
         field: Object.keys(error.keyPattern)[0],
-        errorType: 'DuplicateKey'
+        errorType: 'DuplicateKey',
       });
     }
 
     if (error.name === 'MongoNetworkError') {
       return res.status(503).json({
         message: 'Database connection error',
-        errorType: 'DatabaseConnection'
+        errorType: 'DatabaseConnection',
       });
     }
 
-    return res.status(500).json({ 
+    return res.status(500).json({
       message: error.message,
-      errorType: 'InternalServerError'
+      errorType: 'InternalServerError',
     });
   }
 };
@@ -127,7 +127,12 @@ exports.getAllSessions = async (req, res) => {
 exports.getSessionById = async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({ message: 'Invalid ID' });
+      return res.status(400).json({
+        message: 'Invalid session ID',
+        field: 'id',
+        value: req.params.id,
+        expected: 'Valid MongoDB ObjectId',
+      });
     }
 
     const session = await Session.findOne({
@@ -138,7 +143,10 @@ exports.getSessionById = async (req, res) => {
       .populate('participants', 'name email');
 
     if (!session) {
-      return res.status(404).json({ message: 'Session not found' });
+      return res.status(404).json({
+        message: 'Session not found',
+        sessionId: req.params.id,
+      });
     }
 
     return res.status(200).json(session);

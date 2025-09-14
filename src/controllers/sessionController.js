@@ -17,19 +17,44 @@ exports.createSession = async (req, res) => {
       capacity,
     } = req.body;
 
-    if (!title || !classId || !mentorId || !date || !zoomLink || !duration || !type) {
-      return res.status(400).json({ message: 'Missing required fields' });
+    const requiredFields = { title, classId, mentorId, date, zoomLink, duration, type };
+    const missingFields = Object.entries(requiredFields)
+      .filter(([key, value]) => !value)
+      .map(([key]) => key);
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        message: 'Missing required fields',
+        missingFields,
+        providedFields: Object.keys(req.body),
+        requiredFields: Object.keys(requiredFields)
+      });
     }
 
     if (!mongoose.Types.ObjectId.isValid(classId)) {
-      return res.status(400).json({ message: 'Invalid class ID' });
+      return res.status(400).json({ 
+        message: 'Invalid class ID',
+        field: 'classId',
+        value: classId,
+        expected: 'Valid MongoDB ObjectId'
+      });
     }
     if (!mongoose.Types.ObjectId.isValid(mentorId)) {
-      return res.status(400).json({ message: 'Invalid mentor ID' });
+      return res.status(400).json({ 
+        message: 'Invalid mentor ID',
+        field: 'mentorId', 
+        value: mentorId,
+        expected: 'Valid MongoDB ObjectId'
+      });
     }
 
     if (new Date(date) <= new Date()) {
-      return res.status(400).json({ message: 'Session date must be in the future' });
+      return res.status(400).json({ 
+        message: 'Session date must be in the future',
+        field: 'date',
+        value: date,
+        currentTime: new Date().toISOString()
+      });
     }
 
     const session = await Session.create({
@@ -50,7 +75,39 @@ exports.createSession = async (req, res) => {
 
     return res.status(201).json(session);
   } catch (error) {
-    return res.status(400).json({ message: error.message });
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map((e) => ({
+        field: e.path,
+        message: e.message,
+        value: e.value,
+        kind: e.kind
+      }));
+      return res.status(400).json({ 
+        message: 'Validation failed', 
+        errors,
+        errorType: 'MongooseValidation'
+      });
+    }
+
+    if (error.code === 11000) {
+      return res.status(400).json({
+        message: 'Duplicate entry',
+        field: Object.keys(error.keyPattern)[0],
+        errorType: 'DuplicateKey'
+      });
+    }
+
+    if (error.name === 'MongoNetworkError') {
+      return res.status(503).json({
+        message: 'Database connection error',
+        errorType: 'DatabaseConnection'
+      });
+    }
+
+    return res.status(500).json({ 
+      message: error.message,
+      errorType: 'InternalServerError'
+    });
   }
 };
 

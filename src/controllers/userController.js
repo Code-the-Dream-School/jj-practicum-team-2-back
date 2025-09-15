@@ -1,6 +1,6 @@
 const User = require('../models/User');
+const mongoose = require('mongoose');
 
-// GET own profile
 exports.getOwnProfile = async (req, res) => {
   const userId = req.user.userId;
   const profile = await User.findById(userId).select(
@@ -12,9 +12,12 @@ exports.getOwnProfile = async (req, res) => {
   return res.json({ profile });
 };
 
-// GET user profile
 exports.getUser = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid ID' });
+    }
+
     const user = await User.findById(req.params.id).select(
       '-password -passwordResetToken -passwordResetTokenExpiry'
     );
@@ -22,17 +25,17 @@ exports.getUser = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
     return res.json(user);
-  } catch (_err) {
+  } catch (_error) {
     return res.status(500).json({ error: 'Server error' });
   }
 };
 
-// UPDATE user profile
 exports.updateUser = async (req, res) => {
   try {
-    // Only allow update if the logged-in user is the same or admin
-    console.log(req.user.id);
-    console.log(req.params.id);
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid ID' });
+    }
+
     if (req.user.id !== req.params.id && req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Not authorized to update this profile' });
     }
@@ -55,14 +58,17 @@ exports.updateUser = async (req, res) => {
     }
 
     return res.json(updatedUser);
-  } catch (_err) {
+  } catch (_error) {
     return res.status(500).json({ error: 'Server error' });
   }
 };
 
-// DELETE user
 exports.deleteUser = async (req, res) => {
   try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid ID' });
+    }
+
     if (req.user.id !== req.params.id && req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Not authorized to delete this profile' });
     }
@@ -74,12 +80,11 @@ exports.deleteUser = async (req, res) => {
     }
 
     return res.json({ message: 'User deleted successfully' });
-  } catch (_err) {
+  } catch (_error) {
     return res.status(500).json({ error: 'Server error' });
   }
 };
 
-// ADMIN: Get all users
 exports.getAllUsers = async (req, res) => {
   try {
     if (req.user.role !== 'admin') {

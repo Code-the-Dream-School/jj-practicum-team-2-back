@@ -3,6 +3,7 @@ const attachCookiesToResponse = require('../util/attachCookiesToResponse');
 const generateToken = require('../util/generateToken');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
+const { addStudentToDefaultClass } = require('./classController');
 
 exports.register = async (req, res) => {
   try {
@@ -21,6 +22,11 @@ exports.register = async (req, res) => {
 
     user = new User({ role, firstName, lastName, email, password });
     await user.save();
+
+    // Auto-add student to default class
+    if (role === 'student') {
+      await addStudentToDefaultClass(user._id);
+    }
 
     const token = generateToken(user._id, '7d', 'auth', user.role);
 
@@ -55,7 +61,7 @@ exports.login = async (req, res) => {
     const token = generateToken(user._id, '7d', 'auth', user.role);
 
     attachCookiesToResponse({ res, user }, token);
-    console.log(token);
+
     return res.json({
       message: 'Logged in successfully',
       user: {

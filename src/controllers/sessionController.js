@@ -332,14 +332,33 @@ exports.getMentorDashboard = async (req, res) => {
       .sort({ date: 1 });
 
     const currentTime = new Date();
+
     const thisWeek = {
-      inProgress: sessions.filter((session) => session.status === 'ongoing'),
-      upcoming: sessions.filter(
-        (session) => session.status === 'scheduled' && session.date > currentTime
-      ),
-      pastSessions: sessions.filter(
-        (session) => session.status === 'completed' || session.date < currentTime
-      ),
+      inProgress: sessions.filter((session) => {
+        // Session is in progress if status is 'ongoing' OR if it's scheduled and should have started
+        const sessionStart = new Date(session.date);
+        const sessionEnd = new Date(sessionStart.getTime() + session.duration * 60 * 1000);
+        const isInTimeWindow = currentTime >= sessionStart && currentTime <= sessionEnd;
+
+        return session.status === 'ongoing' || (session.status === 'scheduled' && isInTimeWindow);
+      }),
+
+      upcoming: sessions.filter((session) => {
+        // Session is upcoming if scheduled and in the future
+        return session.status === 'scheduled' && new Date(session.date) > currentTime;
+      }),
+
+      pastSessions: sessions.filter((session) => {
+        // Session is past if completed, canceled, OR if the time has passed
+        const sessionStart = new Date(session.date);
+        const sessionEnd = new Date(sessionStart.getTime() + session.duration * 60 * 1000);
+
+        return (
+          session.status === 'completed' ||
+          session.status === 'canceled' ||
+          sessionEnd < currentTime
+        );
+      }),
     };
 
     const stats = {
@@ -485,6 +504,44 @@ exports.updateWeeklyGoal = async (req, res) => {
     await User.findByIdAndUpdate(userId, { weeklyGoal });
 
     return res.json({ message: 'Weekly goal updated successfully' });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+// Cancel session (change status to canceled)
+exports.cancelSession = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid ID' });
+    }
+
+    const session = await Session.findOne({
+      _id: req.params.id,
+      isDeleted: false,
+    });
+
+    if (!session) {
+      return res.status(404).json({ message: 'Session not found' });
+    }
+
+    // Can only cancel scheduled sessions
+    if (session.status !== 'scheduled') {
+      return res.status(400).json({
+        message: `Cannot cancel session with status: ${session.status}. Only scheduled sessions can be canceled.`,
+      });
+    }
+
+    // Change status to canceled instead of deleting
+    session.status = 'canceled';
+    await session.save();
+
+    // TODO: Here you could add logic to notify participants via email
+
+    return res.status(200).json({
+      message: 'Session canceled successfully',
+      session,
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

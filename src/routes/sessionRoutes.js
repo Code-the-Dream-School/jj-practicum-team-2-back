@@ -5,6 +5,7 @@ const {
   getSessionById,
   updateSession,
   deleteSession,
+  cancelSession,
   getStudentDashboard,
   getMentorDashboard,
   registerForSession,
@@ -29,6 +30,9 @@ router.post('/:id/attendance', authMiddleware, checkRole(['mentor']), markAttend
 
 // Weekly goal management (student only)
 router.put('/weekly-goal', authMiddleware, checkRole(['student']), updateWeeklyGoal);
+
+// Session cancel route (separate from delete)
+router.put('/:id/cancel', authMiddleware, checkRole(['mentor', 'admin']), cancelSession);
 
 // Protected routes
 router

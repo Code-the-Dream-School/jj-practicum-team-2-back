@@ -43,4 +43,3 @@ router
   .delete(authMiddleware, checkRole(['mentor', 'admin']), deleteSession);
 
 module.exports = router;
-

@@ -224,7 +224,7 @@ exports.getStudentDashboard = async (req, res) => {
     // Get user with weekly goal
     const User = require('../models/User');
     const user = await User.findById(userId).select('weeklyGoal');
-    
+
     const defaultClass = await ensureDefaultClass();
 
     if (!defaultClass) {
@@ -258,16 +258,18 @@ exports.getStudentDashboard = async (req, res) => {
       upcoming: sessions.filter(
         (session) => session.status === 'scheduled' && session.date > currentTime
       ),
-      past: sessions.filter(
-        (session) =>
-          session.status === 'completed' ||
-          (session.date < currentTime &&
-            session.status !== 'ongoing' &&
-            session.status !== 'scheduled')
-      ).map(session => ({
-        ...session.toObject(),
-        attended: session.attendees ? session.attendees.includes(userId) : false
-      })),
+      past: sessions
+        .filter(
+          (session) =>
+            session.status === 'completed' ||
+            (session.date < currentTime &&
+              session.status !== 'ongoing' &&
+              session.status !== 'scheduled')
+        )
+        .map((session) => ({
+          ...session.toObject(),
+          attended: session.attendees ? session.attendees.includes(userId) : false,
+        })),
     };
 
     const myRegistrations = sessions
@@ -275,8 +277,8 @@ exports.getStudentDashboard = async (req, res) => {
       .map((session) => session._id);
 
     // Calculate real attendance statistics
-    const attendedThisWeek = thisWeek.past.filter((session) =>
-      session.attendees && session.attendees.some((a) => a.equals(userId))
+    const attendedThisWeek = thisWeek.past.filter(
+      (session) => session.attendees && session.attendees.some((a) => a.equals(userId))
     ).length;
 
     const upcomingThisWeek = thisWeek.upcoming.filter((session) =>
@@ -448,13 +450,13 @@ exports.markAttendance = async (req, res) => {
 
     // Verify all attendee IDs are valid participants
     const invalidAttendees = attendeeIds.filter(
-      id => !session.participants.some(p => p.equals(id))
+      (id) => !session.participants.some((p) => p.equals(id))
     );
 
     if (invalidAttendees.length > 0) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: 'Some attendees are not registered for this session',
-        invalidAttendees 
+        invalidAttendees,
       });
     }
 
@@ -474,8 +476,8 @@ exports.updateWeeklyGoal = async (req, res) => {
     const { weeklyGoal } = req.body;
 
     if (!weeklyGoal || weeklyGoal < 1 || weeklyGoal > 10) {
-      return res.status(400).json({ 
-        message: 'Weekly goal must be between 1 and 10' 
+      return res.status(400).json({
+        message: 'Weekly goal must be between 1 and 10',
       });
     }
 

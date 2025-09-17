@@ -2,7 +2,7 @@ const User = require('../models/User');
 const mongoose = require('mongoose');
 
 exports.getOwnProfile = async (req, res) => {
-  const userId = req.user.userId;
+  const userId = req.user.id;
   const profile = await User.findById(userId).select(
     '-password -passwordResetToken -passwordResetTokenExpiry'
   );

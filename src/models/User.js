@@ -33,6 +33,12 @@ const userSchema = new mongoose.Schema(
     bio: String, // mentor-specific
     zoomLink: String, // mentor-specific
     registeredSessions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Session' }],
+    weeklyGoal: {
+      type: Number,
+      default: 3,
+      min: 1,
+      max: 10,
+    }, // weekly session goal for students
     notifications: [
       {
         message: String,

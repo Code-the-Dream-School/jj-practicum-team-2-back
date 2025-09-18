@@ -66,6 +66,12 @@ const sessionSchema = new Schema(
         ref: 'User',
       },
     ],
+    attendees: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ], // Users who actually attended the session (subset of participants)
     recordingLink: String,
     recordingVisibility: {
       type: String,

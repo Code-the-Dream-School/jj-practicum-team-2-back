@@ -221,6 +221,10 @@ exports.getStudentDashboard = async (req, res) => {
   try {
     const userId = req.user.id;
 
+    // Get user with weekly goal
+    const User = require('../models/User');
+    const user = await User.findById(userId).select('weeklyGoal');
+
     const defaultClass = await ensureDefaultClass();
 
     if (!defaultClass) {
@@ -254,30 +258,48 @@ exports.getStudentDashboard = async (req, res) => {
       upcoming: sessions.filter(
         (session) => session.status === 'scheduled' && session.date > currentTime
       ),
-      past: sessions.filter(
-        (session) =>
-          session.status === 'completed' ||
-          (session.date < currentTime &&
-            session.status !== 'ongoing' &&
-            session.status !== 'scheduled')
-      ),
+      past: sessions
+        .filter(
+          (session) =>
+            session.status === 'completed' ||
+            (session.date < currentTime &&
+              session.status !== 'ongoing' &&
+              session.status !== 'scheduled')
+        )
+        .map((session) => ({
+          ...session.toObject(),
+          attended: session.attendees ? session.attendees.includes(userId) : false,
+        })),
     };
 
     const myRegistrations = sessions
       .filter((session) => session.participants.some((p) => p.equals(userId)))
       .map((session) => session._id);
 
+    // Calculate real attendance statistics
+    const attendedThisWeek = thisWeek.past.filter(
+      (session) => session.attendees && session.attendees.some((a) => a.equals(userId))
+    ).length;
+
+    const upcomingThisWeek = thisWeek.upcoming.filter((session) =>
+      session.participants.some((p) => p.equals(userId))
+    ).length;
+
     const stats = {
-      attendedThisWeek: thisWeek.past.filter((session) =>
-        session.participants.some((p) => p.equals(userId))
-      ).length,
-      upcomingThisWeek: thisWeek.upcoming.length,
+      attendedThisWeek,
+      upcomingThisWeek,
+      plannedThisWeek: attendedThisWeek + upcomingThisWeek,
+      weeklyGoal: user?.weeklyGoal || 3,
+      weeklyGoalMet: attendedThisWeek >= (user?.weeklyGoal || 3),
     };
 
     return res.json({
       thisWeek,
       myRegistrations,
       stats,
+      user: {
+        weeklyGoal: user?.weeklyGoal || 3,
+      },
     });
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -310,14 +332,33 @@ exports.getMentorDashboard = async (req, res) => {
       .sort({ date: 1 });
 
     const currentTime = new Date();
+
     const thisWeek = {
-      inProgress: sessions.filter((session) => session.status === 'ongoing'),
-      upcoming: sessions.filter(
-        (session) => session.status === 'scheduled' && session.date > currentTime
-      ),
-      pastSessions: sessions.filter(
-        (session) => session.status === 'completed' || session.date < currentTime
-      ),
+      inProgress: sessions.filter((session) => {
+        // Session is in progress if status is 'ongoing' OR if it's scheduled and should have started
+        const sessionStart = new Date(session.date);
+        const sessionEnd = new Date(sessionStart.getTime() + session.duration * 60 * 1000);
+        const isInTimeWindow = currentTime >= sessionStart && currentTime <= sessionEnd;
+
+        return session.status === 'ongoing' || (session.status === 'scheduled' && isInTimeWindow);
+      }),
+
+      upcoming: sessions.filter((session) => {
+        // Session is upcoming if scheduled and in the future
+        return session.status === 'scheduled' && new Date(session.date) > currentTime;
+      }),
+
+      pastSessions: sessions.filter((session) => {
+        // Session is past if completed, canceled, OR if the time has passed
+        const sessionStart = new Date(session.date);
+        const sessionEnd = new Date(sessionStart.getTime() + session.duration * 60 * 1000);
+
+        return (
+          session.status === 'completed' ||
+          session.status === 'canceled' ||
+          sessionEnd < currentTime
+        );
+      }),
     };
 
     const stats = {
@@ -402,6 +443,105 @@ exports.unregisterFromSession = async (req, res) => {
     await session.save();
 
     return res.json({ message: 'Successfully unregistered from session' });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+// Mark attendance for a session (mentor only)
+exports.markAttendance = async (req, res) => {
+  try {
+    const sessionId = req.params.id;
+    const { attendeeIds } = req.body; // Array of user IDs who attended
+
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+      return res.status(400).json({ message: 'Invalid session ID' });
+    }
+
+    const session = await Session.findOne({
+      _id: sessionId,
+      isDeleted: false,
+    });
+
+    if (!session) {
+      return res.status(404).json({ message: 'Session not found' });
+    }
+
+    // Verify all attendee IDs are valid participants
+    const invalidAttendees = attendeeIds.filter(
+      (id) => !session.participants.some((p) => p.equals(id))
+    );
+
+    if (invalidAttendees.length > 0) {
+      return res.status(400).json({
+        message: 'Some attendees are not registered for this session',
+        invalidAttendees,
+      });
+    }
+
+    session.attendees = attendeeIds;
+    await session.save();
+
+    return res.json({ message: 'Attendance marked successfully' });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+// Update user's weekly goal
+exports.updateWeeklyGoal = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { weeklyGoal } = req.body;
+
+    if (!weeklyGoal || weeklyGoal < 1 || weeklyGoal > 10) {
+      return res.status(400).json({
+        message: 'Weekly goal must be between 1 and 10',
+      });
+    }
+
+    const User = require('../models/User');
+    await User.findByIdAndUpdate(userId, { weeklyGoal });
+
+    return res.json({ message: 'Weekly goal updated successfully' });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+// Cancel session (change status to canceled)
+exports.cancelSession = async (req, res) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ message: 'Invalid ID' });
+    }
+
+    const session = await Session.findOne({
+      _id: req.params.id,
+      isDeleted: false,
+    });
+
+    if (!session) {
+      return res.status(404).json({ message: 'Session not found' });
+    }
+
+    // Can only cancel scheduled sessions
+    if (session.status !== 'scheduled') {
+      return res.status(400).json({
+        message: `Cannot cancel session with status: ${session.status}. Only scheduled sessions can be canceled.`,
+      });
+    }
+
+    // Change status to canceled instead of deleting
+    session.status = 'canceled';
+    await session.save();
+
+    // TODO: Here you could add logic to notify participants via email
+
+    return res.status(200).json({
+      message: 'Session canceled successfully',
+      session,
+    });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }

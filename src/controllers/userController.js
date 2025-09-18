@@ -42,7 +42,7 @@ exports.updateUser = async (req, res) => {
       return res.status(400).json({ message: 'Invalid ID' });
     }
 
-    if (req.user.id !== req.params.id && req.user.role !== 'admin') {
+    if (String(req.user.id) !== req.params.id && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized to update this profile' });
     }
 
@@ -89,7 +89,7 @@ exports.deleteUser = async (req, res) => {
       return res.status(400).json({ message: 'Invalid ID' });
     }
 
-    if (req.user.id !== req.params.id && req.user.role !== 'admin') {
+    if (String(req.user.id) !== req.params.id && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized to delete this profile' });
     }
 
@@ -112,7 +112,9 @@ exports.getAllUsers = async (req, res) => {
       return res.status(403).json({ message: 'Not authorized' });
     }
 
-    const users = await User.find().select('-password');
+    const users = await User.find().select(
+      '-password -passwordResetToken -passwordResetTokenExpiry'
+    );
     return res.json(users);
   } catch (error) {
     console.error('Get all users error:', error);

@@ -7,7 +7,6 @@ exports.createSession = async (req, res) => {
     const {
       title,
       description,
-      classId,
       courseName,
       mentorId,
       date,
@@ -17,7 +16,7 @@ exports.createSession = async (req, res) => {
       capacity,
     } = req.body;
 
-    const requiredFields = { title, classId, mentorId, date, zoomLink, duration, type };
+    const requiredFields = { title, mentorId, date, zoomLink, duration, type };
     const missingFields = Object.entries(requiredFields)
       .filter(([_key, value]) => !value)
       .map(([_key]) => _key);
@@ -31,14 +30,6 @@ exports.createSession = async (req, res) => {
       });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(classId)) {
-      return res.status(400).json({
-        message: 'Invalid class ID',
-        field: 'classId',
-        value: classId,
-        expected: 'Valid MongoDB ObjectId',
-      });
-    }
     if (!mongoose.Types.ObjectId.isValid(mentorId)) {
       return res.status(400).json({
         message: 'Invalid mentor ID',
@@ -57,10 +48,19 @@ exports.createSession = async (req, res) => {
       });
     }
 
+    // Автоматически получаем дефолтный класс
+    const defaultClass = await ensureDefaultClass();
+    if (!defaultClass) {
+      return res.status(500).json({
+        message: 'Failed to get default class',
+        errorType: 'DefaultClassError',
+      });
+    }
+
     const session = await Session.create({
       title,
       description,
-      classId,
+      classId: defaultClass._id, // Автоматически используем дефолтный класс
       courseName,
       mentorId,
       date,

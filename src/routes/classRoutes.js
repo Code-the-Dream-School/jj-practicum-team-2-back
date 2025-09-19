@@ -6,8 +6,11 @@ const {
   getClassById,
   updateClass,
   deleteClass,
+  getDefaultClass,
 } = require('../controllers/classController');
 const { authMiddleware, checkRole } = require('../middleware/authMiddleware');
+
+router.get('/default', authMiddleware, getDefaultClass);
 
 // CRUD routes
 router
@@ -22,3 +25,4 @@ router
   .delete(authMiddleware, checkRole(['mentor', 'admin']), deleteClass);
 
 module.exports = router;
+

@@ -11,6 +11,7 @@ const {
   registerForSession,
   unregisterFromSession,
   markAttendance,
+  getSessionAttendance,
   updateWeeklyGoal,
 } = require('../controllers/sessionController');
 const { authMiddleware, checkRole } = require('../middleware/authMiddleware');
@@ -27,6 +28,7 @@ router.delete('/:id/unregister', authMiddleware, checkRole(['student']), unregis
 
 // Attendance management (mentor only)
 router.post('/:id/attendance', authMiddleware, checkRole(['mentor']), markAttendance);
+router.get('/:id/attendance', authMiddleware, checkRole(['mentor']), getSessionAttendance);
 
 // Weekly goal management (student only)
 router.put('/weekly-goal', authMiddleware, checkRole(['student']), updateWeeklyGoal);
@@ -37,7 +39,7 @@ router.put('/:id/cancel', authMiddleware, checkRole(['mentor', 'admin']), cancel
 // Protected routes
 router
   .route('/')
-  .post(authMiddleware, checkRole('mentor', 'admin'), createSession)
+  .post(authMiddleware, checkRole(['mentor', 'admin']), createSession)
   .get(authMiddleware, getAllSessions);
 
 router

@@ -31,9 +31,11 @@ const sessionSchema = new Schema(
       required: [true, 'Please provide a session date'],
       validate: {
         validator: function (value) {
-          return value > Date.now();
+          // Allow sessions that are not more than 5 minutes in the past
+          const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+          return value >= fiveMinutesAgo;
         },
-        message: 'Session date must be in the future',
+        message: 'Session date cannot be more than 5 minutes in the past',
       },
     },
     zoomLink: {

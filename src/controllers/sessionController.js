@@ -30,12 +30,18 @@ exports.createSession = async (req, res) => {
       });
     }
 
-    if (new Date(date) <= new Date()) {
+    // Allow creating sessions for current time or future (not strict past validation)
+    const sessionDate = new Date(date);
+    const now = new Date();
+    // Allow sessions that are not more than 5 minutes in the past
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+
+    if (sessionDate < fiveMinutesAgo) {
       return res.status(400).json({
-        message: 'Session date must be in the future',
+        message: 'Session date cannot be more than 5 minutes in the past',
         field: 'date',
         value: date,
-        currentTime: new Date().toISOString(),
+        currentTime: now.toISOString(),
       });
     }
 
@@ -50,7 +56,7 @@ exports.createSession = async (req, res) => {
     const session = await Session.create({
       title,
       description,
-      classId: defaultClass._id, // Автоматически используем дефолтный класс
+      classId: defaultClass._id,
       courseName,
       mentorId,
       date,
@@ -244,18 +250,36 @@ exports.getStudentDashboard = async (req, res) => {
 
     const currentTime = new Date();
     const thisWeek = {
-      inProgress: sessions.filter((session) => session.status === 'ongoing'),
-      upcoming: sessions.filter(
-        (session) => session.status === 'scheduled' && session.date > currentTime
-      ),
+      inProgress: sessions.filter((session) => {
+        // Session is in progress if status is 'ongoing' OR if it's scheduled and currently happening
+        const sessionStart = new Date(session.date);
+        const sessionEnd = new Date(sessionStart.getTime() + session.duration * 60 * 1000);
+        const isInTimeWindow = currentTime >= sessionStart && currentTime <= sessionEnd;
+
+        return session.status === 'ongoing' || (session.status === 'scheduled' && isInTimeWindow);
+      }),
+
+      upcoming: sessions.filter((session) => {
+        // Session is upcoming if it's in the future (regardless of status, except completed)
+        const sessionStart = new Date(session.date);
+        return sessionStart > currentTime && session.status !== 'completed';
+      }),
+
       past: sessions
-        .filter(
-          (session) =>
+        .filter((session) => {
+          // Session is past if:
+          // 1. Status is completed, OR
+          // 2. Session end time (start + duration) has passed, OR
+          // 3. Status is canceled AND session time has passed
+          const sessionStart = new Date(session.date);
+          const sessionEnd = new Date(sessionStart.getTime() + session.duration * 60 * 1000);
+
+          return (
             session.status === 'completed' ||
-            (session.date < currentTime &&
-              session.status !== 'ongoing' &&
-              session.status !== 'scheduled')
-        )
+            (session.status === 'scheduled' && sessionEnd < currentTime) ||
+            (session.status === 'canceled' && sessionStart < currentTime)
+          );
+        })
         .map((session) => ({
           ...session.toObject(),
           attended: session.attendees ? session.attendees.includes(userId) : false,
@@ -325,7 +349,7 @@ exports.getMentorDashboard = async (req, res) => {
 
     const thisWeek = {
       inProgress: sessions.filter((session) => {
-        // Session is in progress if status is 'ongoing' OR if it's scheduled and should have started
+        // Session is in progress if status is 'ongoing' OR if it's scheduled and currently happening
         const sessionStart = new Date(session.date);
         const sessionEnd = new Date(sessionStart.getTime() + session.duration * 60 * 1000);
         const isInTimeWindow = currentTime >= sessionStart && currentTime <= sessionEnd;
@@ -334,19 +358,23 @@ exports.getMentorDashboard = async (req, res) => {
       }),
 
       upcoming: sessions.filter((session) => {
-        // Session is upcoming if scheduled and in the future
-        return session.status === 'scheduled' && new Date(session.date) > currentTime;
+        // Session is upcoming if it's in the future (regardless of status, except completed)
+        const sessionStart = new Date(session.date);
+        return sessionStart > currentTime && session.status !== 'completed';
       }),
 
-      pastSessions: sessions.filter((session) => {
-        // Session is past if completed, canceled, OR if the time has passed
+      past: sessions.filter((session) => {
+        // Session is past if:
+        // 1. Status is completed, OR
+        // 2. Session end time (start + duration) has passed, OR
+        // 3. Status is canceled AND session time has passed
         const sessionStart = new Date(session.date);
         const sessionEnd = new Date(sessionStart.getTime() + session.duration * 60 * 1000);
 
         return (
           session.status === 'completed' ||
-          session.status === 'canceled' ||
-          sessionEnd < currentTime
+          (session.status === 'scheduled' && sessionEnd < currentTime) ||
+          (session.status === 'canceled' && sessionStart < currentTime)
         );
       }),
     };
@@ -442,10 +470,26 @@ exports.unregisterFromSession = async (req, res) => {
 exports.markAttendance = async (req, res) => {
   try {
     const sessionId = req.params.id;
-    const { attendeeIds } = req.body; // Array of user IDs who attended
+    const { attendeeIds } = req.body;
+    const mentorId = req.user.id;
 
+    // Validate session ID
     if (!mongoose.Types.ObjectId.isValid(sessionId)) {
       return res.status(400).json({ message: 'Invalid session ID' });
+    }
+
+    // Validate attendeeIds array
+    if (!Array.isArray(attendeeIds)) {
+      return res.status(400).json({ message: 'attendeeIds must be an array' });
+    }
+
+    // Validate each attendee ID
+    const invalidIds = attendeeIds.filter((id) => !mongoose.Types.ObjectId.isValid(id));
+    if (invalidIds.length > 0) {
+      return res.status(400).json({
+        message: 'Invalid attendee IDs',
+        invalidIds,
+      });
     }
 
     const session = await Session.findOne({
@@ -455,6 +499,13 @@ exports.markAttendance = async (req, res) => {
 
     if (!session) {
       return res.status(404).json({ message: 'Session not found' });
+    }
+
+    // Security check: Only the mentor who owns the session can mark attendance
+    if (!session.mentorId.equals(mentorId)) {
+      return res.status(403).json({
+        message: 'Forbidden: You can only mark attendance for your own sessions',
+      });
     }
 
     // Verify all attendee IDs are valid participants
@@ -469,12 +520,76 @@ exports.markAttendance = async (req, res) => {
       });
     }
 
-    session.attendees = attendeeIds;
-    await session.save();
+    // Remove duplicates from attendeeIds
+    const uniqueAttendeeIds = [...new Set(attendeeIds.map((id) => id.toString()))];
 
-    return res.json({ message: 'Attendance marked successfully' });
+    session.attendees = uniqueAttendeeIds;
+    // Skip validation when saving attendance (we're not changing the date)
+    await session.save({ validateBeforeSave: false });
+
+    return res.json({
+      message: 'Attendance marked successfully',
+      attendeesCount: uniqueAttendeeIds.length,
+    });
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    console.error('Mark attendance error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Get session attendance data (mentor only)
+exports.getSessionAttendance = async (req, res) => {
+  try {
+    const sessionId = req.params.id;
+    const mentorId = req.user.id;
+
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+      return res.status(400).json({ message: 'Invalid session ID' });
+    }
+
+    const session = await Session.findOne({
+      _id: sessionId,
+      isDeleted: false,
+    })
+      .populate('participants', 'firstName lastName email')
+      .populate('attendees', 'firstName lastName email');
+
+    if (!session) {
+      return res.status(404).json({ message: 'Session not found' });
+    }
+
+    // Security check: Only the mentor who owns the session can view attendance
+    if (!session.mentorId.equals(mentorId)) {
+      return res.status(403).json({
+        message: 'Forbidden: You can only view attendance for your own sessions',
+      });
+    }
+
+    // Create attendance data with marked attendance status
+    const attendanceData = session.participants.map((participant) => {
+      const isPresent =
+        session.attendees &&
+        session.attendees.some((attendee) => attendee._id.equals(participant._id));
+
+      return {
+        id: participant._id,
+        name: `${participant.firstName} ${participant.lastName}`,
+        email: participant.email,
+        isPresent,
+      };
+    });
+
+    return res.json({
+      sessionId: session._id,
+      sessionTitle: session.title,
+      sessionDate: session.date,
+      totalParticipants: session.participants.length,
+      totalAttendees: session.attendees ? session.attendees.length : 0,
+      attendanceData,
+    });
+  } catch (error) {
+    console.error('Get session attendance error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 

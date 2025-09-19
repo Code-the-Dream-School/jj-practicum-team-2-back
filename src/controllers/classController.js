@@ -148,7 +148,7 @@ exports.addStudentToDefaultClass = async (studentId) => {
 exports.getDefaultClass = async (req, res) => {
   try {
     const defaultClass = await this.ensureDefaultClass();
-    
+
     if (!defaultClass) {
       return res.status(404).json({ message: 'Default class not found' });
     }

@@ -4,17 +4,8 @@ const mongoose = require('mongoose');
 
 exports.createSession = async (req, res) => {
   try {
-    const {
-      title,
-      description,
-      courseName,
-      mentorId,
-      date,
-      zoomLink,
-      duration,
-      type,
-      capacity,
-    } = req.body;
+    const { title, description, courseName, mentorId, date, zoomLink, duration, type, capacity } =
+      req.body;
 
     const requiredFields = { title, mentorId, date, zoomLink, duration, type };
     const missingFields = Object.entries(requiredFields)
@@ -48,7 +39,6 @@ exports.createSession = async (req, res) => {
       });
     }
 
-    // Автоматически получаем дефолтный класс
     const defaultClass = await ensureDefaultClass();
     if (!defaultClass) {
       return res.status(500).json({

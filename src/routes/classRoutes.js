@@ -25,4 +25,3 @@ router
   .delete(authMiddleware, checkRole(['mentor', 'admin']), deleteClass);
 
 module.exports = router;
-

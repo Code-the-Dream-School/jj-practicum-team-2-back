@@ -262,24 +262,29 @@ exports.getStudentDashboard = async (req, res) => {
       }),
 
       upcoming: sessions.filter((session) => {
-        // Session is upcoming if it's in the future (regardless of status, except completed)
+        // Session is upcoming if:
+        // 1. Status is scheduled AND session is in the future
+        // 2. OR status is canceled AND session is in the future (to show what was planned)
         const sessionStart = new Date(session.date);
-        return sessionStart > currentTime && session.status !== 'completed';
+        return (
+          (session.status === 'scheduled' && sessionStart > currentTime) ||
+          (session.status === 'canceled' && sessionStart > currentTime)
+        );
       }),
 
       past: sessions
         .filter((session) => {
           // Session is past if:
           // 1. Status is completed, OR
-          // 2. Session end time (start + duration) has passed, OR
-          // 3. Status is canceled AND session time has passed
+          // 2. Status is canceled AND session time has passed, OR
+          // 3. Session end time (start + duration) has passed AND status is scheduled
           const sessionStart = new Date(session.date);
           const sessionEnd = new Date(sessionStart.getTime() + session.duration * 60 * 1000);
 
           return (
             session.status === 'completed' ||
-            (session.status === 'scheduled' && sessionEnd < currentTime) ||
-            (session.status === 'canceled' && sessionStart < currentTime)
+            (session.status === 'canceled' && sessionStart < currentTime) ||
+            (session.status === 'scheduled' && sessionEnd < currentTime)
           );
         })
         .map((session) => ({
@@ -360,23 +365,28 @@ exports.getMentorDashboard = async (req, res) => {
       }),
 
       upcoming: sessions.filter((session) => {
-        // Session is upcoming if it's in the future (regardless of status, except completed)
+        // Session is upcoming if:
+        // 1. Status is scheduled AND session is in the future
+        // 2. OR status is canceled AND session is in the future (to show what was planned)
         const sessionStart = new Date(session.date);
-        return sessionStart > currentTime && session.status !== 'completed';
+        return (
+          (session.status === 'scheduled' && sessionStart > currentTime) ||
+          (session.status === 'canceled' && sessionStart > currentTime)
+        );
       }),
 
       past: sessions.filter((session) => {
         // Session is past if:
         // 1. Status is completed, OR
-        // 2. Session end time (start + duration) has passed, OR
-        // 3. Status is canceled AND session time has passed
+        // 2. Status is canceled AND session time has passed, OR
+        // 3. Session end time (start + duration) has passed AND status is scheduled
         const sessionStart = new Date(session.date);
         const sessionEnd = new Date(sessionStart.getTime() + session.duration * 60 * 1000);
 
         return (
           session.status === 'completed' ||
-          (session.status === 'scheduled' && sessionEnd < currentTime) ||
-          (session.status === 'canceled' && sessionStart < currentTime)
+          (session.status === 'canceled' && sessionStart < currentTime) ||
+          (session.status === 'scheduled' && sessionEnd < currentTime)
         );
       }),
     };

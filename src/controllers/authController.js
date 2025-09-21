@@ -43,7 +43,9 @@ exports.register = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error('Registration error:', err);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Registration error:', err);
+    }
 
     // Handle Mongoose validation errors
     if (err.name === 'ValidationError') {
@@ -94,8 +96,10 @@ exports.login = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error('Login error:', err);
-    return res.status(500).json({ message: err.message });
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Login error:', err);
+    }
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
@@ -110,7 +114,9 @@ exports.logout = (req, res) => {
     });
     return res.json({ message: 'Logged out successfully' });
   } catch (err) {
-    console.error('Logout error:', err);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Logout error:', err);
+    }
     return res.status(500).json({ message: 'Logout failed' });
   }
 };
@@ -137,13 +143,20 @@ exports.forgotPassword = async (req, res) => {
     await user.save();
 
     // In production, send email with resetToken
-    // For development, return token in response
-    return res.json({
+    const response = {
       message: 'Password reset token generated. Check your email.',
-      resetToken: resetToken, // Remove this in production
-    });
+    };
+
+    // Only include resetToken in development mode
+    if (process.env.NODE_ENV === 'development') {
+      response.resetToken = resetToken;
+    }
+
+    return res.json(response);
   } catch (err) {
-    console.error('Forgot password error:', err);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Forgot password error:', err);
+    }
     return res.status(500).json({ message: 'Server error' });
   }
 };
@@ -186,7 +199,9 @@ exports.resetPassword = async (req, res) => {
 
     return res.status(200).json({ message: 'Password reset successfully' });
   } catch (error) {
-    console.error('Reset password error:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Reset password error:', error);
+    }
     return res.status(500).json({ message: 'Server error' });
   }
 };
@@ -214,7 +229,9 @@ exports.getCurrentUser = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error('Get current user error:', err);
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Get current user error:', err);
+    }
     return res.status(500).json({ message: 'Server error' });
   }
 };

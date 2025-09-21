@@ -2,14 +2,20 @@ const User = require('../models/User');
 const mongoose = require('mongoose');
 
 exports.getOwnProfile = async (req, res) => {
-  const userId = req.user.id;
-  const profile = await User.findById(userId).select(
-    '-password -passwordResetToken -passwordResetTokenExpiry'
-  );
-  if (!profile) {
-    return res.status(404).json({ error: 'User not found' });
+  try {
+    const userId = req.user.id;
+    const profile = await User.findById(userId).select(
+      '-password -passwordResetToken -passwordResetTokenExpiry'
+    );
+
+    if (!profile) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    return res.json({ profile });
+  } catch (_error) {
+    return res.status(500).json({ error: 'Server error' });
   }
-  return res.json({ profile });
 };
 
 exports.getUser = async (req, res) => {

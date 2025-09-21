@@ -651,3 +651,76 @@ exports.cancelSession = async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
+
+exports.updateSessionStatus = async (req, res) => {
+  try {
+    const sessionId = req.params.id;
+    const { status } = req.body;
+    const mentorId = req.user.id;
+
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+      return res.status(400).json({ message: 'Invalid session ID' });
+    }
+
+    const allowedStatuses = ['scheduled', 'ongoing', 'completed', 'canceled'];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        message: 'Invalid status',
+        allowedStatuses,
+      });
+    }
+
+    const session = await Session.findOne({
+      _id: sessionId,
+      isDeleted: false,
+    });
+
+    if (!session) {
+      return res.status(404).json({ message: 'Session not found' });
+    }
+
+    if (!session.mentorId.equals(mentorId)) {
+      return res.status(403).json({
+        message: 'Forbidden: You can only update your own sessions',
+      });
+    }
+
+    const currentStatus = session.status;
+    const validTransitions = {
+      scheduled: ['ongoing', 'completed', 'canceled'],
+      ongoing: ['completed', 'canceled'],
+      completed: [],
+      canceled: [],
+    };
+
+    if (!validTransitions[currentStatus].includes(status)) {
+      return res.status(400).json({
+        message: `Cannot change status from '${currentStatus}' to '${status}'`,
+        currentStatus,
+        allowedTransitions: validTransitions[currentStatus],
+      });
+    }
+
+    session.status = status;
+
+    if (status === 'completed') {
+      session.completedAt = new Date();
+    }
+
+    await session.save({ validateBeforeSave: false });
+
+    return res.json({
+      message: `Session status updated to '${status}' successfully`,
+      session: {
+        _id: session._id,
+        title: session.title,
+        status: session.status,
+        date: session.date,
+        completedAt: session.completedAt,
+      },
+    });
+  } catch (error) {
+    console.error('Update session status error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};

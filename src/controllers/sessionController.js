@@ -30,18 +30,20 @@ exports.createSession = async (req, res) => {
       });
     }
 
-    // Allow creating sessions for current time or future (not strict past validation)
+    // Allow creating sessions for current time or future
+    // Only prevent sessions that are more than 5 minutes in the past
     const sessionDate = new Date(date);
     const now = new Date();
-    // Allow sessions that are not more than 5 minutes in the past
     const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
 
+    // Only check if session is in the past - future sessions are always allowed
     if (sessionDate < fiveMinutesAgo) {
       return res.status(400).json({
         message: 'Session date cannot be more than 5 minutes in the past',
         field: 'date',
         value: date,
         currentTime: now.toISOString(),
+        fiveMinutesAgo: fiveMinutesAgo.toISOString(),
       });
     }
 

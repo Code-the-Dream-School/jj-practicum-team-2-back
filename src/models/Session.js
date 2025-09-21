@@ -31,7 +31,8 @@ const sessionSchema = new Schema(
       required: [true, 'Please provide a session date'],
       validate: {
         validator: function (value) {
-          // Allow sessions that are not more than 5 minutes in the past
+          // Only prevent sessions that are more than 5 minutes in the past
+          // Future sessions are always allowed
           const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
           return value >= fiveMinutesAgo;
         },

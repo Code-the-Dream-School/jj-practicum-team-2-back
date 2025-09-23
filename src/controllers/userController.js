@@ -3,23 +3,33 @@ const mongoose = require('mongoose');
 
 exports.getOwnProfile = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     const userId = req.user.id;
     const profile = await User.findById(userId).select(
       '-password -passwordResetToken -passwordResetTokenExpiry'
     );
 
     if (!profile) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ _error: 'User not found' });
     }
 
     return res.json({ profile });
   } catch (_error) {
-    return res.status(500).json({ error: 'Server error' });
+    return res.status(500).json({ _error: 'Server error' });
   }
 };
 
 exports.getUser = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'Invalid ID' });
     }
@@ -38,12 +48,17 @@ exports.getUser = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'Invalid ID' });
     }
 
     if (req.user.id !== req.params.id && req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Not authorized to update this profile' });
+      return res.status(403).json({ _error: 'Not authorized to update this profile' });
     }
 
     const allowedFields = ['firstName', 'lastName', 'avatarUrl', 'bio', 'zoomLink'];
@@ -63,20 +78,25 @@ exports.updateUser = async (req, res) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    return res.json(updatedUser);
+    return res.json({ message: 'User updated successfully', user: updatedUser });
   } catch (_error) {
-    return res.status(500).json({ error: 'Server error' });
+    return res.status(500).json({ _error: 'Server error' });
   }
 };
 
 exports.deleteUser = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'Invalid ID' });
     }
 
-    if (req.user.id !== req.params.id && req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Not authorized to delete this profile' });
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Not authorized to delete users' });
     }
 
     const deletedUser = await User.findByIdAndDelete(req.params.id);
@@ -93,6 +113,11 @@ exports.deleteUser = async (req, res) => {
 
 exports.getAllUsers = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Not authorized' });
     }

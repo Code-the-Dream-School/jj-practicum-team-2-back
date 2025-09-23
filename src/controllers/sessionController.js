@@ -4,6 +4,11 @@ const mongoose = require('mongoose');
 
 exports.createSession = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     const { title, description, courseName, mentorId, date, zoomLink, duration, type, capacity } =
       req.body;
 
@@ -111,6 +116,11 @@ exports.createSession = async (req, res) => {
 
 exports.getAllSessions = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     const sessions = await Session.find({ isDeleted: false })
       .populate('mentorId', 'name email')
       .populate('participants', 'name email')
@@ -124,6 +134,11 @@ exports.getAllSessions = async (req, res) => {
 
 exports.getSessionById = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({
         message: 'Invalid session ID',
@@ -155,6 +170,11 @@ exports.getSessionById = async (req, res) => {
 
 exports.updateSession = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'Invalid ID' });
     }
@@ -170,6 +190,22 @@ exports.updateSession = async (req, res) => {
 
     const { title, description, courseName, date, zoomLink, duration, type, capacity, status } =
       req.body;
+
+    // Add date validation (same as in createSession)
+    if (date) {
+      const sessionDate = new Date(date);
+      const now = new Date();
+      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+
+      if (sessionDate < fiveMinutesAgo) {
+        return res.status(400).json({
+          message: 'Session date cannot be more than 5 minutes in the past',
+          field: 'date',
+          currentTime: now.toISOString(),
+          fiveMinutesAgo: fiveMinutesAgo.toISOString(),
+        });
+      }
+    }
 
     const updateData = {};
     if (title !== undefined) updateData.title = title;
@@ -193,6 +229,11 @@ exports.updateSession = async (req, res) => {
 
 exports.deleteSession = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'Invalid ID' });
     }
@@ -217,6 +258,11 @@ exports.deleteSession = async (req, res) => {
 
 exports.getStudentDashboard = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     const userId = req.user.id;
 
     // Get user with weekly goal
@@ -329,6 +375,11 @@ exports.getStudentDashboard = async (req, res) => {
 
 exports.getMentorDashboard = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     const mentorId = req.user.id;
 
     const now = new Date();
@@ -408,6 +459,11 @@ exports.getMentorDashboard = async (req, res) => {
 
 exports.registerForSession = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     const sessionId = req.params.id;
     const userId = req.user.id;
 
@@ -447,6 +503,11 @@ exports.registerForSession = async (req, res) => {
 
 exports.unregisterFromSession = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     const sessionId = req.params.id;
     const userId = req.user.id;
 
@@ -481,6 +542,11 @@ exports.unregisterFromSession = async (req, res) => {
 // Mark attendance for a session (mentor only)
 exports.markAttendance = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     const sessionId = req.params.id;
     const { attendeeIds } = req.body;
     const mentorId = req.user.id;
@@ -552,6 +618,11 @@ exports.markAttendance = async (req, res) => {
 // Get session attendance data (mentor only)
 exports.getSessionAttendance = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     const sessionId = req.params.id;
     const mentorId = req.user.id;
 
@@ -608,6 +679,11 @@ exports.getSessionAttendance = async (req, res) => {
 // Update user's weekly goal
 exports.updateWeeklyGoal = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     const userId = req.user.id;
     const { weeklyGoal } = req.body;
 
@@ -629,6 +705,11 @@ exports.updateWeeklyGoal = async (req, res) => {
 // Cancel session (change status to canceled)
 exports.cancelSession = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'Invalid ID' });
     }
@@ -666,6 +747,11 @@ exports.cancelSession = async (req, res) => {
 
 exports.updateSessionStatus = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     const sessionId = req.params.id;
     const { status } = req.body;
     const mentorId = req.user.id;

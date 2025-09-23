@@ -208,6 +208,11 @@ exports.resetPassword = async (req, res) => {
 
 exports.getCurrentUser = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     const user = await User.findById(req.user.id).select(
       '-password -passwordResetToken -passwordResetTokenExpiry'
     );

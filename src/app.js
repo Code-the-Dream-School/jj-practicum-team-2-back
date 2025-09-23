@@ -47,7 +47,22 @@ app.use((req, res, _next) => {
 });
 
 app.use((err, req, res, _next) => {
-  console.error(err.stack);
+  // Only log error details in development
+  if (process.env.NODE_ENV === 'development') {
+    console.error('Error details:', {
+      message: err.message,
+      stack: err.stack,
+      path: req.path,
+      method: req.method
+    });
+  } else {
+    // In production, only log generic error info
+    console.error('Server error occurred:', {
+      path: req.path,
+      method: req.method,
+      timestamp: new Date().toISOString()
+    });
+  }
   return res.status(500).json({ message: 'Server error' });
 });
 

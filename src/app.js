@@ -53,14 +53,14 @@ app.use((err, req, res, _next) => {
       message: err.message,
       stack: err.stack,
       path: req.path,
-      method: req.method
+      method: req.method,
     });
   } else {
     // In production, only log generic error info
     console.error('Server error occurred:', {
       path: req.path,
       method: req.method,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   }
   return res.status(500).json({ message: 'Server error' });

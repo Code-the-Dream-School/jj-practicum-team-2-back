@@ -7,7 +7,7 @@ const { addStudentToDefaultClass } = require('./classController');
 
 exports.register = async (req, res) => {
   try {
-    const { role, firstName, lastName, email, password } = req.body;
+    const { role, firstName, lastName, email, password, bio } = req.body;
 
     if (!role || !firstName || !lastName || !email || !password) {
       return res.status(400).json({ message: 'Please fill all fields' });
@@ -20,7 +20,7 @@ exports.register = async (req, res) => {
     let user = await User.findOne({ email });
     if (user) return res.status(400).json({ message: 'User already exists' });
 
-    user = new User({ role, firstName, lastName, email, password });
+    user = new User({ role, firstName, lastName, email, password, bio });
     await user.save();
 
     // Auto-add student to default class

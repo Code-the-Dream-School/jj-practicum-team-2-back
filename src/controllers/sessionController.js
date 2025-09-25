@@ -4,20 +4,15 @@ const mongoose = require('mongoose');
 
 exports.createSession = async (req, res) => {
   try {
-    const {
-      title,
-      description,
-      classId,
-      courseName,
-      mentorId,
-      date,
-      zoomLink,
-      duration,
-      type,
-      capacity,
-    } = req.body;
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
 
-    const requiredFields = { title, classId, mentorId, date, zoomLink, duration, type };
+    const { title, description, courseName, mentorId, date, zoomLink, duration, type, capacity } =
+      req.body;
+
+    const requiredFields = { title, mentorId, date, zoomLink, duration, type };
     const missingFields = Object.entries(requiredFields)
       .filter(([_key, value]) => !value)
       .map(([_key]) => _key);
@@ -31,14 +26,6 @@ exports.createSession = async (req, res) => {
       });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(classId)) {
-      return res.status(400).json({
-        message: 'Invalid class ID',
-        field: 'classId',
-        value: classId,
-        expected: 'Valid MongoDB ObjectId',
-      });
-    }
     if (!mongoose.Types.ObjectId.isValid(mentorId)) {
       return res.status(400).json({
         message: 'Invalid mentor ID',
@@ -48,19 +35,35 @@ exports.createSession = async (req, res) => {
       });
     }
 
-    if (new Date(date) <= new Date()) {
+    // Allow creating sessions for current time or future
+    // Only prevent sessions that are more than 5 minutes in the past
+    const sessionDate = new Date(date);
+    const now = new Date();
+    const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+
+    // Only check if session is in the past - future sessions are always allowed
+    if (sessionDate < fiveMinutesAgo) {
       return res.status(400).json({
-        message: 'Session date must be in the future',
+        message: 'Session date cannot be more than 5 minutes in the past',
         field: 'date',
         value: date,
-        currentTime: new Date().toISOString(),
+        currentTime: now.toISOString(),
+        fiveMinutesAgo: fiveMinutesAgo.toISOString(),
+      });
+    }
+
+    const defaultClass = await ensureDefaultClass();
+    if (!defaultClass) {
+      return res.status(500).json({
+        message: 'Failed to get default class',
+        errorType: 'DefaultClassError',
       });
     }
 
     const session = await Session.create({
       title,
       description,
-      classId,
+      classId: defaultClass._id,
       courseName,
       mentorId,
       date,
@@ -113,6 +116,11 @@ exports.createSession = async (req, res) => {
 
 exports.getAllSessions = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     const sessions = await Session.find({ isDeleted: false })
       .populate('mentorId', 'name email')
       .populate('participants', 'name email')
@@ -126,6 +134,11 @@ exports.getAllSessions = async (req, res) => {
 
 exports.getSessionById = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({
         message: 'Invalid session ID',
@@ -157,6 +170,11 @@ exports.getSessionById = async (req, res) => {
 
 exports.updateSession = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'Invalid ID' });
     }
@@ -172,6 +190,22 @@ exports.updateSession = async (req, res) => {
 
     const { title, description, courseName, date, zoomLink, duration, type, capacity, status } =
       req.body;
+
+    // Add date validation (same as in createSession)
+    if (date) {
+      const sessionDate = new Date(date);
+      const now = new Date();
+      const fiveMinutesAgo = new Date(now.getTime() - 5 * 60 * 1000);
+
+      if (sessionDate < fiveMinutesAgo) {
+        return res.status(400).json({
+          message: 'Session date cannot be more than 5 minutes in the past',
+          field: 'date',
+          currentTime: now.toISOString(),
+          fiveMinutesAgo: fiveMinutesAgo.toISOString(),
+        });
+      }
+    }
 
     const updateData = {};
     if (title !== undefined) updateData.title = title;
@@ -195,6 +229,11 @@ exports.updateSession = async (req, res) => {
 
 exports.deleteSession = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'Invalid ID' });
     }
@@ -219,6 +258,11 @@ exports.deleteSession = async (req, res) => {
 
 exports.getStudentDashboard = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     const userId = req.user.id;
 
     // Get user with weekly goal
@@ -254,18 +298,41 @@ exports.getStudentDashboard = async (req, res) => {
 
     const currentTime = new Date();
     const thisWeek = {
-      inProgress: sessions.filter((session) => session.status === 'ongoing'),
-      upcoming: sessions.filter(
-        (session) => session.status === 'scheduled' && session.date > currentTime
-      ),
+      inProgress: sessions.filter((session) => {
+        // Session is in progress if status is 'ongoing' OR if it's scheduled and currently happening
+        const sessionStart = new Date(session.date);
+        const sessionEnd = new Date(sessionStart.getTime() + session.duration * 60 * 1000);
+        const isInTimeWindow = currentTime >= sessionStart && currentTime <= sessionEnd;
+
+        return session.status === 'ongoing' || (session.status === 'scheduled' && isInTimeWindow);
+      }),
+
+      upcoming: sessions.filter((session) => {
+        // Session is upcoming if:
+        // 1. Status is scheduled AND session is in the future
+        // 2. OR status is canceled AND session is in the future (to show what was planned)
+        const sessionStart = new Date(session.date);
+        return (
+          (session.status === 'scheduled' && sessionStart > currentTime) ||
+          (session.status === 'canceled' && sessionStart > currentTime)
+        );
+      }),
+
       past: sessions
-        .filter(
-          (session) =>
+        .filter((session) => {
+          // Session is past if:
+          // 1. Status is completed, OR
+          // 2. Status is canceled AND session time has passed, OR
+          // 3. Session end time (start + duration) has passed AND status is scheduled
+          const sessionStart = new Date(session.date);
+          const sessionEnd = new Date(sessionStart.getTime() + session.duration * 60 * 1000);
+
+          return (
             session.status === 'completed' ||
-            (session.date < currentTime &&
-              session.status !== 'ongoing' &&
-              session.status !== 'scheduled')
-        )
+            (session.status === 'canceled' && sessionStart < currentTime) ||
+            (session.status === 'scheduled' && sessionEnd < currentTime)
+          );
+        })
         .map((session) => ({
           ...session.toObject(),
           attended: session.attendees ? session.attendees.includes(userId) : false,
@@ -308,6 +375,11 @@ exports.getStudentDashboard = async (req, res) => {
 
 exports.getMentorDashboard = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     const mentorId = req.user.id;
 
     const now = new Date();
@@ -335,7 +407,7 @@ exports.getMentorDashboard = async (req, res) => {
 
     const thisWeek = {
       inProgress: sessions.filter((session) => {
-        // Session is in progress if status is 'ongoing' OR if it's scheduled and should have started
+        // Session is in progress if status is 'ongoing' OR if it's scheduled and currently happening
         const sessionStart = new Date(session.date);
         const sessionEnd = new Date(sessionStart.getTime() + session.duration * 60 * 1000);
         const isInTimeWindow = currentTime >= sessionStart && currentTime <= sessionEnd;
@@ -344,19 +416,28 @@ exports.getMentorDashboard = async (req, res) => {
       }),
 
       upcoming: sessions.filter((session) => {
-        // Session is upcoming if scheduled and in the future
-        return session.status === 'scheduled' && new Date(session.date) > currentTime;
+        // Session is upcoming if:
+        // 1. Status is scheduled AND session is in the future
+        // 2. OR status is canceled AND session is in the future (to show what was planned)
+        const sessionStart = new Date(session.date);
+        return (
+          (session.status === 'scheduled' && sessionStart > currentTime) ||
+          (session.status === 'canceled' && sessionStart > currentTime)
+        );
       }),
 
-      pastSessions: sessions.filter((session) => {
-        // Session is past if completed, canceled, OR if the time has passed
+      past: sessions.filter((session) => {
+        // Session is past if:
+        // 1. Status is completed, OR
+        // 2. Status is canceled AND session time has passed, OR
+        // 3. Session end time (start + duration) has passed AND status is scheduled
         const sessionStart = new Date(session.date);
         const sessionEnd = new Date(sessionStart.getTime() + session.duration * 60 * 1000);
 
         return (
           session.status === 'completed' ||
-          session.status === 'canceled' ||
-          sessionEnd < currentTime
+          (session.status === 'canceled' && sessionStart < currentTime) ||
+          (session.status === 'scheduled' && sessionEnd < currentTime)
         );
       }),
     };
@@ -378,6 +459,11 @@ exports.getMentorDashboard = async (req, res) => {
 
 exports.registerForSession = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     const sessionId = req.params.id;
     const userId = req.user.id;
 
@@ -417,6 +503,11 @@ exports.registerForSession = async (req, res) => {
 
 exports.unregisterFromSession = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     const sessionId = req.params.id;
     const userId = req.user.id;
 
@@ -451,11 +542,32 @@ exports.unregisterFromSession = async (req, res) => {
 // Mark attendance for a session (mentor only)
 exports.markAttendance = async (req, res) => {
   try {
-    const sessionId = req.params.id;
-    const { attendeeIds } = req.body; // Array of user IDs who attended
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
 
+    const sessionId = req.params.id;
+    const { attendeeIds } = req.body;
+    const mentorId = req.user.id;
+
+    // Validate session ID
     if (!mongoose.Types.ObjectId.isValid(sessionId)) {
       return res.status(400).json({ message: 'Invalid session ID' });
+    }
+
+    // Validate attendeeIds array
+    if (!Array.isArray(attendeeIds)) {
+      return res.status(400).json({ message: 'attendeeIds must be an array' });
+    }
+
+    // Validate each attendee ID
+    const invalidIds = attendeeIds.filter((id) => !mongoose.Types.ObjectId.isValid(id));
+    if (invalidIds.length > 0) {
+      return res.status(400).json({
+        message: 'Invalid attendee IDs',
+        invalidIds,
+      });
     }
 
     const session = await Session.findOne({
@@ -465,6 +577,13 @@ exports.markAttendance = async (req, res) => {
 
     if (!session) {
       return res.status(404).json({ message: 'Session not found' });
+    }
+
+    // Security check: Only the mentor who owns the session can mark attendance
+    if (!session.mentorId.equals(mentorId)) {
+      return res.status(403).json({
+        message: 'Forbidden: You can only mark attendance for your own sessions',
+      });
     }
 
     // Verify all attendee IDs are valid participants
@@ -479,18 +598,92 @@ exports.markAttendance = async (req, res) => {
       });
     }
 
-    session.attendees = attendeeIds;
-    await session.save();
+    // Remove duplicates from attendeeIds
+    const uniqueAttendeeIds = [...new Set(attendeeIds.map((id) => id.toString()))];
 
-    return res.json({ message: 'Attendance marked successfully' });
+    session.attendees = uniqueAttendeeIds;
+    // Skip validation when saving attendance (we're not changing the date)
+    await session.save({ validateBeforeSave: false });
+
+    return res.json({
+      message: 'Attendance marked successfully',
+      attendeesCount: uniqueAttendeeIds.length,
+    });
   } catch (error) {
-    return res.status(500).json({ message: error.message });
+    console.error('Mark attendance error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+// Get session attendance data (mentor only)
+exports.getSessionAttendance = async (req, res) => {
+  try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const sessionId = req.params.id;
+    const mentorId = req.user.id;
+
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+      return res.status(400).json({ message: 'Invalid session ID' });
+    }
+
+    const session = await Session.findOne({
+      _id: sessionId,
+      isDeleted: false,
+    })
+      .populate('participants', 'firstName lastName email')
+      .populate('attendees', 'firstName lastName email');
+
+    if (!session) {
+      return res.status(404).json({ message: 'Session not found' });
+    }
+
+    // Security check: Only the mentor who owns the session can view attendance
+    if (!session.mentorId.equals(mentorId)) {
+      return res.status(403).json({
+        message: 'Forbidden: You can only view attendance for your own sessions',
+      });
+    }
+
+    // Create attendance data with marked attendance status
+    const attendanceData = session.participants.map((participant) => {
+      const isPresent =
+        session.attendees &&
+        session.attendees.some((attendee) => attendee._id.equals(participant._id));
+
+      return {
+        id: participant._id,
+        name: `${participant.firstName} ${participant.lastName}`,
+        email: participant.email,
+        isPresent,
+      };
+    });
+
+    return res.json({
+      sessionId: session._id,
+      sessionTitle: session.title,
+      sessionDate: session.date,
+      totalParticipants: session.participants.length,
+      totalAttendees: session.attendees ? session.attendees.length : 0,
+      attendanceData,
+    });
+  } catch (error) {
+    console.error('Get session attendance error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };
 
 // Update user's weekly goal
 exports.updateWeeklyGoal = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     const userId = req.user.id;
     const { weeklyGoal } = req.body;
 
@@ -512,6 +705,11 @@ exports.updateWeeklyGoal = async (req, res) => {
 // Cancel session (change status to canceled)
 exports.cancelSession = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'Invalid ID' });
     }
@@ -544,5 +742,83 @@ exports.cancelSession = async (req, res) => {
     });
   } catch (error) {
     return res.status(500).json({ message: error.message });
+  }
+};
+
+exports.updateSessionStatus = async (req, res) => {
+  try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const sessionId = req.params.id;
+    const { status } = req.body;
+    const mentorId = req.user.id;
+
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+      return res.status(400).json({ message: 'Invalid session ID' });
+    }
+
+    const allowedStatuses = ['scheduled', 'ongoing', 'completed', 'canceled'];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        message: 'Invalid status',
+        allowedStatuses,
+      });
+    }
+
+    const session = await Session.findOne({
+      _id: sessionId,
+      isDeleted: false,
+    });
+
+    if (!session) {
+      return res.status(404).json({ message: 'Session not found' });
+    }
+
+    if (!session.mentorId.equals(mentorId)) {
+      return res.status(403).json({
+        message: 'Forbidden: You can only update your own sessions',
+      });
+    }
+
+    const currentStatus = session.status;
+    const validTransitions = {
+      scheduled: ['ongoing', 'completed', 'canceled'],
+      ongoing: ['completed', 'canceled'],
+      completed: [],
+      canceled: [],
+    };
+
+    if (!validTransitions[currentStatus].includes(status)) {
+      return res.status(400).json({
+        message: `Cannot change status from '${currentStatus}' to '${status}'`,
+        currentStatus,
+        allowedTransitions: validTransitions[currentStatus],
+      });
+    }
+
+    session.status = status;
+
+    if (status === 'completed') {
+      session.completedAt = new Date();
+    }
+
+    await session.save({ validateBeforeSave: false });
+
+    return res.json({
+      message: `Session status updated to '${status}' successfully`,
+      session: {
+        _id: session._id,
+        title: session.title,
+        status: session.status,
+        date: session.date,
+        completedAt: session.completedAt,
+      },
+    });
+  } catch (error) {
+    console.error('Update session status error:', error);
+    return res.status(500).json({ message: 'Internal server error' });
   }
 };

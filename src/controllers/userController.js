@@ -3,22 +3,33 @@ const mongoose = require('mongoose');
 
 exports.getOwnProfile = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     const userId = req.user.id;
     const profile = await User.findById(userId).select(
       '-password -passwordResetToken -passwordResetTokenExpiry'
     );
+
     if (!profile) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ _error: 'User not found' });
     }
+
     return res.json({ profile });
-  } catch (error) {
-    console.error('Get own profile error:', error);
-    return res.status(500).json({ message: 'Server error' });
+  } catch (_error) {
+    return res.status(500).json({ _error: 'Server error' });
   }
 };
 
 exports.getUser = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'Invalid ID' });
     }
@@ -27,23 +38,27 @@ exports.getUser = async (req, res) => {
       '-password -passwordResetToken -passwordResetTokenExpiry'
     );
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ error: 'User not found' });
     }
     return res.json(user);
-  } catch (error) {
-    console.error('Get user error:', error);
-    return res.status(500).json({ message: 'Server error' });
+  } catch (_error) {
+    return res.status(500).json({ error: 'Server error' });
   }
 };
 
 exports.updateUser = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'Invalid ID' });
     }
 
-    if (String(req.user.id) !== req.params.id && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Not authorized to update this profile' });
+    if (req.user.id !== req.params.id && req.user.role !== 'admin') {
+      return res.status(403).json({ _error: 'Not authorized to update this profile' });
     }
 
     const allowedFields = ['firstName', 'lastName', 'avatarUrl', 'bio', 'zoomLink'];
@@ -60,64 +75,56 @@ exports.updateUser = async (req, res) => {
     ).select('-password -passwordResetToken -passwordResetTokenExpiry');
 
     if (!updatedUser) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ error: 'User not found' });
     }
 
-    return res.json(updatedUser);
-  } catch (error) {
-    console.error('Update user error:', error);
-
-    // Handle Mongoose validation errors
-    if (error.name === 'ValidationError') {
-      const validationErrors = Object.values(error.errors).map((err) => ({
-        field: err.path,
-        message: err.message,
-      }));
-      return res.status(400).json({
-        message: 'Validation failed',
-        errors: validationErrors,
-      });
-    }
-
-    return res.status(500).json({ message: 'Server error' });
+    return res.json({ message: 'User updated successfully', user: updatedUser });
+  } catch (_error) {
+    return res.status(500).json({ _error: 'Server error' });
   }
 };
 
 exports.deleteUser = async (req, res) => {
   try {
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ message: 'Invalid ID' });
     }
 
-    if (String(req.user.id) !== req.params.id && req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Not authorized to delete this profile' });
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Not authorized to delete users' });
     }
 
     const deletedUser = await User.findByIdAndDelete(req.params.id);
 
     if (!deletedUser) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ error: 'User not found' });
     }
 
     return res.json({ message: 'User deleted successfully' });
-  } catch (error) {
-    console.error('Delete user error:', error);
-    return res.status(500).json({ message: 'Server error' });
+  } catch (_error) {
+    return res.status(500).json({ error: 'Server error' });
   }
 };
 
 exports.getAllUsers = async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ message: 'Not authorized' });
+    // Early auth check
+    if (!req.user?.id) {
+      return res.status(401).json({ message: 'Unauthorized' });
     }
 
-    const users = await User.find().select(
-      '-password -passwordResetToken -passwordResetTokenExpiry'
-    );
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Not authorized' });
+    }
+
+    const users = await User.find().select('-password');
     return res.json(users);
-  } catch (error) {
-    console.error('Get all users error:', error);
-    return res.status(500).json({ message: 'Server error' });
+  } catch (_err) {
+    return res.status(500).json({ error: 'Server error' });
   }
 };

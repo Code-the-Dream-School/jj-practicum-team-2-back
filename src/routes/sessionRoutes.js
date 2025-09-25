@@ -11,33 +11,32 @@ const {
   registerForSession,
   unregisterFromSession,
   markAttendance,
+  getSessionAttendance,
   updateWeeklyGoal,
+  updateSessionStatus,
 } = require('../controllers/sessionController');
 const { authMiddleware, checkRole } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-// Dashboard routes
 router.get('/student-dashboard', authMiddleware, checkRole(['student']), getStudentDashboard);
 router.get('/mentor-dashboard', authMiddleware, checkRole(['mentor']), getMentorDashboard);
 
-// Session registration routes
 router.post('/:id/register', authMiddleware, checkRole(['student']), registerForSession);
 router.delete('/:id/unregister', authMiddleware, checkRole(['student']), unregisterFromSession);
 
-// Attendance management (mentor only)
 router.post('/:id/attendance', authMiddleware, checkRole(['mentor']), markAttendance);
+router.get('/:id/attendance', authMiddleware, checkRole(['mentor']), getSessionAttendance);
 
-// Weekly goal management (student only)
 router.put('/weekly-goal', authMiddleware, checkRole(['student']), updateWeeklyGoal);
 
-// Session cancel route (separate from delete)
+router.put('/:id/status', authMiddleware, checkRole(['mentor']), updateSessionStatus);
+
 router.put('/:id/cancel', authMiddleware, checkRole(['mentor', 'admin']), cancelSession);
 
-// Protected routes
 router
   .route('/')
-  .post(authMiddleware, checkRole('mentor', 'admin'), createSession)
+  .post(authMiddleware, checkRole(['mentor', 'admin']), createSession)
   .get(authMiddleware, getAllSessions);
 
 router

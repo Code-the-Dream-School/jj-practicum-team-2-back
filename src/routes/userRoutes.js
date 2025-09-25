@@ -7,17 +7,15 @@ const {
   getAllUsers,
   getOwnProfile,
 } = require('../controllers/userController');
-const { authMiddleware } = require('../middleware/authMiddleware');
-
-console.log({ getUser, updateUser, deleteUser, getAllUsers, authMiddleware });
+const { authMiddleware, checkRole } = require('../middleware/authMiddleware');
 
 // Profile CRUD
 router.get('/myProfile', authMiddleware, getOwnProfile);
-router.get('/:id', authMiddleware, getUser); // get single user
-router.put('/:id', authMiddleware, updateUser); // update profile
-router.delete('/:id', authMiddleware, deleteUser); // delete profile
+router.get('/:id', authMiddleware, checkRole(['mentor', 'student', 'admin']), getUser); // get single user
+router.put('/:id', authMiddleware, checkRole(['mentor', 'student', 'admin']), updateUser); // update profile
+router.delete('/:id', authMiddleware, checkRole(['admin']), deleteUser); // delete profile - admin only
 
 // Admin only
-router.get('/', authMiddleware, getAllUsers);
+router.get('/', authMiddleware, checkRole(['admin']), getAllUsers);
 
 module.exports = router;

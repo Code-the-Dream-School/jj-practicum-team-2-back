@@ -2,8 +2,9 @@
   "name": "jj-practicum-team-2-back",
   "version": "1.0.0",
   "description": "Back-End Repo for Team 2 of JJ Practicum",
-  "main": "app.js",
+  "main": "src/server.js",
   "scripts": {
+    "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "test": "node test-auth-complete.js",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",

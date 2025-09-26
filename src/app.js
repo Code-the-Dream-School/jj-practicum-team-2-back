@@ -18,7 +18,6 @@ const corsOptions = {
       'http://localhost:5173',
       'http://localhost:3000',
       process.env.FRONTEND_URL,
-      'https://mentorhub-nmn2.onrender.com', // Add your specific frontend domain
     ].filter(Boolean);
 
     // Check if origin is in allowed list or is a render.com subdomain

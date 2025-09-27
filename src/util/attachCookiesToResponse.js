@@ -10,7 +10,7 @@ const attachCookiesToResponse = ({ res, _user }, token) => {
     sameSite: 'None', // Required for cross-domain cookies
     path: '/',
     maxAge: oneWeek,
-    signed: true
+    signed: true,
     // No domain specified - let browser handle it
   };
 

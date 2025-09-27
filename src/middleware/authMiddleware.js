@@ -1,6 +1,17 @@
 const jwt = require('jsonwebtoken');
 
 const authMiddleware = (req, res, next) => {
+  // Debug logging для production диагностики
+  if (process.env.NODE_ENV === 'production') {
+    console.log('Auth Debug:', {
+      origin: req.headers.origin,
+      referer: req.headers.referer,
+      cookies: req.cookies ? Object.keys(req.cookies) : 'none',
+      signedCookies: req.signedCookies ? Object.keys(req.signedCookies) : 'none',
+      hasAuthHeader: !!req.headers.authorization,
+    });
+  }
+
   const authHeader = req.headers.authorization;
 
   let token;

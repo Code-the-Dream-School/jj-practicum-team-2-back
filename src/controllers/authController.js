@@ -83,6 +83,16 @@ exports.login = async (req, res) => {
 
     const token = generateToken(user._id, '7d', 'auth', user.role);
 
+    // Debug logging для production
+    if (process.env.NODE_ENV === 'production') {
+      console.log('Login Debug:', {
+        userEmail: email,
+        tokenGenerated: !!token,
+        origin: req.headers.origin,
+        userAgent: req.headers['user-agent']?.substring(0, 50),
+      });
+    }
+
     attachCookiesToResponse({ res, user }, token);
 
     return res.json({

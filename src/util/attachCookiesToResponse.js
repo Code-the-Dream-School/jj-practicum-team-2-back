@@ -2,7 +2,6 @@
 
 const attachCookiesToResponse = ({ res, _user }, token) => {
   const oneWeek = 7 * 24 * 60 * 60 * 1000;
-  const isProduction = process.env.NODE_ENV === 'production';
 
   // Optimized cookie settings for Render cross-domain
   const cookieOptions = {
@@ -11,7 +10,7 @@ const attachCookiesToResponse = ({ res, _user }, token) => {
     sameSite: 'None', // Required for cross-domain cookies
     path: '/',
     maxAge: oneWeek,
-    signed: true,
+    signed: true
     // No domain specified - let browser handle it
   };
 

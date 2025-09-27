@@ -78,12 +78,12 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
-    const isMatch = await user.comparePassword(password); // use model method
+    const isMatch = await user.comparePassword(password);
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
     const token = generateToken(user._id, '7d', 'auth', user.role);
 
-    // Debug logging для production
+    // Debug logging for production
     if (process.env.NODE_ENV === 'production') {
       console.log('Login Debug:', {
         userEmail: email,
@@ -93,10 +93,12 @@ exports.login = async (req, res) => {
       });
     }
 
+    // for Safari fallback
     attachCookiesToResponse({ res, user }, token);
 
     return res.json({
       message: 'Logged in successfully',
+      token: token, // for Safari
       user: {
         email: user.email,
         firstName: user.firstName,

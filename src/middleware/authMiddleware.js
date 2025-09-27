@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 
 const authMiddleware = (req, res, next) => {
-  // Debug logging для production диагностики
+  // Debug logging
   if (process.env.NODE_ENV === 'production') {
     console.log('Auth Debug:', {
       origin: req.headers.origin,
@@ -18,7 +18,6 @@ const authMiddleware = (req, res, next) => {
   if (authHeader && authHeader.startsWith('Bearer ')) {
     token = authHeader.split(' ')[1].trim();
   } else {
-    // Пробуем signed cookies, затем обычные cookies как fallback для Safari
     token = req.signedCookies.token || req.cookies.token;
   }
 

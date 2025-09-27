@@ -6,6 +6,9 @@ const cors = require('cors');
 const favicon = require('express-favicon');
 const logger = require('morgan');
 
+// Trust proxy - необходимо для Render и rate limiting
+app.set('trust proxy', 1);
+
 // CORS configuration for cookie-based authentication
 const corsOptions = {
   origin: [

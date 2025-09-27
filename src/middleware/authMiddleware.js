@@ -18,7 +18,8 @@ const authMiddleware = (req, res, next) => {
   if (authHeader && authHeader.startsWith('Bearer ')) {
     token = authHeader.split(' ')[1].trim();
   } else {
-    token = req.signedCookies.token;
+    // Пробуем signed cookies, затем обычные cookies как fallback для Safari
+    token = req.signedCookies.token || req.cookies.token;
   }
 
   if (!token) {

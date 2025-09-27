@@ -2,13 +2,16 @@
 
 const attachCookiesToResponse = ({ res, _user }, token) => {
   const oneWeek = 1000 * 60 * 60 * 24 * 7;
+  const isProduction = process.env.NODE_ENV === 'production';
 
   res.cookie('token', token, {
     httpOnly: true,
     maxAge: oneWeek,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isProduction, // true only in production (HTTPS)
     signed: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax', // Changed from 'strict' to 'Lax' for development
+    sameSite: isProduction ? 'None' : 'Lax',
+    path: '/', // path for cross-origin
+    domain: isProduction ? undefined : undefined, // don't set domain in production
   });
 };
 

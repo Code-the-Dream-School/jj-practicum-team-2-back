@@ -34,6 +34,7 @@ exports.register = async (req, res) => {
 
     return res.status(201).json({
       message: 'User registered successfully',
+      token: token, // Add token to response for Safari fallback
       user: {
         id: user._id,
         email: user.email,
@@ -93,12 +94,12 @@ exports.login = async (req, res) => {
       });
     }
 
-    // for Safari fallback
+    // Send token in both cookies and response body for Safari fallback
     attachCookiesToResponse({ res, user }, token);
 
     return res.json({
       message: 'Logged in successfully',
-      token: token, // for Safari
+      token: token, // Add token to response for Safari
       user: {
         email: user.email,
         firstName: user.firstName,
@@ -119,10 +120,10 @@ exports.logout = (req, res) => {
   try {
     res.clearCookie('token', {
       httpOnly: true,
-      expires: new Date(Date.now()),
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+      secure: true, // Always true for HTTPS behind proxy
+      sameSite: 'None', // Must match the original cookie settings
       path: '/',
+      signed: true,
     });
     return res.json({ message: 'Logged out successfully' });
   } catch (err) {

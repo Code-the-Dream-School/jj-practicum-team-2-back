@@ -1,25 +1,32 @@
 const jwt = require('jsonwebtoken');
 
 const authMiddleware = (req, res, next) => {
-  // Debug logging for production diagnostics
-  if (process.env.NODE_ENV === 'production') {
-    console.log('Auth Debug:', {
-      origin: req.headers.origin,
-      referer: req.headers.referer,
-      cookies: req.cookies ? Object.keys(req.cookies) : 'none',
-      signedCookies: req.signedCookies ? Object.keys(req.signedCookies) : 'none',
-      hasAuthHeader: !!req.headers.authorization,
-    });
-  }
-
   const authHeader = req.headers.authorization;
 
   let token;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
+  let authMethod = 'none';
+
+  // Try cookies first (for browsers that support cross-origin cookies)
+  token = req.signedCookies.token || req.cookies.token;
+  if (token) {
+    authMethod = req.signedCookies.token ? 'signed cookies' : 'regular cookies';
+    console.log('🍪 Using cookie token');
+  } else if (authHeader && authHeader.startsWith('Bearer ')) {
+    // Fallback to Authorization header (for Safari and other cases)
     token = authHeader.split(' ')[1].trim();
-  } else {
-    // Try signed cookies first, then regular cookies as fallback for Safari
-    token = req.signedCookies.token || req.cookies.token;
+    authMethod = 'Authorization header';
+    console.log('🔑 Using Authorization header token');
+  }
+
+  // Debug logging with auth method
+  if (process.env.NODE_ENV === 'production') {
+    console.log('Auth Debug:', {
+      origin: req.headers.origin,
+      authMethod: authMethod,
+      hasAuthHeader: !!req.headers.authorization,
+      hasCookies: req.cookies ? Object.keys(req.cookies).length : 0,
+      hasSignedCookies: req.signedCookies ? Object.keys(req.signedCookies).length : 0,
+    });
   }
 
   if (!token) {

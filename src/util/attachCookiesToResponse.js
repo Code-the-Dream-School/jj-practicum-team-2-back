@@ -3,6 +3,10 @@
 const attachCookiesToResponse = ({ res, _user }, token) => {
   const oneWeek = 7 * 24 * 60 * 60 * 1000;
 
+  // Add headers for Safari cross-origin support
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Expose-Headers', 'Set-Cookie');
+
   // Optimized cookie settings for Render cross-domain
   const cookieOptions = {
     httpOnly: true,

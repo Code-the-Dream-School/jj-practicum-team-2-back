@@ -8,30 +8,13 @@ const logger = require('morgan');
 
 // CORS configuration for cookie-based authentication
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, etc)
-    if (!origin) {
-      return callback(null, true);
-    }
-
-    const allowedOrigins = [
-      'http://localhost:5173',
-      'http://localhost:3000',
-      process.env.FRONTEND_URL,
-      'https://mentorhub-nmn2.onrender.com',
-    ].filter(Boolean);
-
-    // Check if origin is in allowed list or is a render.com subdomain
-    if (allowedOrigins.indexOf(origin) !== -1 || origin.includes('.onrender.com')) {
-      return callback(null, true);
-    } else {
-      return callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: [
+    'http://localhost:5173', // для локальной разработки
+    'https://mentorhub-nmn2.onrender.com', // для production
+  ],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  optionsSuccessStatus: 200, // For legacy browser support
 };
 
 app.use(cors(corsOptions));

@@ -10,27 +10,16 @@ const cors = require('cors');
 const favicon = require('express-favicon');
 const logger = require('morgan');
 
-// CORS configuration for cookie-based authentication - simplified for debugging
+// CORS configuration for cookie-based authentication
 const corsOptions = {
-  origin: true, // Temporarily allow all origins for debugging
+  origin: ['http://localhost:5173', 'https://mentorhub-nmn2.onrender.com'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   exposedHeaders: ['Set-Cookie'],
 };
 
 app.use(cors(corsOptions));
-
-// Explicit OPTIONS handler for Safari preflight requests
-app.options('*', (req, res) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin);
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization,Cookie');
-  res.header('Access-Control-Expose-Headers', 'Set-Cookie');
-  res.status(200).end();
-});
-
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(logger('dev'));

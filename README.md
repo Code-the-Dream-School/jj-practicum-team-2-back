@@ -19,14 +19,17 @@ Welcome to the **MentorHub Back-End**. This Node.js back-end handles API request
 ## 🛠 Technologies
 
 ### **Core Frameworks**
+
 - **Node.js** – JavaScript runtime for building server-side applications
 - **Express.js** – Minimal and flexible web framework for RESTful APIs
 
 ### **Database & ODM**
+
 - **MongoDB Atlas** – Cloud-hosted NoSQL database for scalable data storage
 - **Mongoose** – Object Document Mapping with schema validation and relationships
 
 ### **Authentication & Security**
+
 - **jsonwebtoken (JWT)** – Token-based user authentication with role-based access control
 - **bcryptjs** – Password hashing for security
 - **cors** – Handles Cross-Origin Resource Sharing for frontend-backend communication
@@ -34,6 +37,7 @@ Welcome to the **MentorHub Back-End**. This Node.js back-end handles API request
 - **cookie-parser** – Secure HTTP-only cookie handling for authentication
 
 ### **Developer Tools**
+
 - **nodemon** – Auto-restarts server on file changes during development
 - **dotenv** – Loads environment variables for secure configuration
 - **morgan** – HTTP request logger middleware for debugging and monitoring
@@ -41,18 +45,21 @@ Welcome to the **MentorHub Back-End**. This Node.js back-end handles API request
 ## ✨ Key Features
 
 ### **🔐 Authentication**
+
 - User registration and login with role-based access (Student, Mentor, Admin)
 - Passwords hashed with bcrypt for secure storage
 - JWT-based authentication with HTTP-only signed cookies
 - Password reset functionality with secure token generation
 
 ### **👤 User & Mentor Profiles**
+
 - CRUD operations for user profiles with role-specific features
 - Mentor profiles with bio, Zoom links, and teaching statistics
 - Student profiles with learning goals and progress tracking
 - Avatar support and profile customization
 
 ### **📅 Session & Attendance Management**
+
 - Create, update, and manage learning sessions with capacity control
 - Session status tracking (scheduled → ongoing → completed → canceled)
 - Digital attendance marking with automated reporting
@@ -60,6 +67,7 @@ Welcome to the **MentorHub Back-End**. This Node.js back-end handles API request
 - Real-time dashboard analytics for both mentors and students
 
 ### **🏫 Class Management**
+
 - Default class assignment for new students
 - Session-class relationships for organized learning paths
 - Mentor access control based on class assignments
@@ -67,6 +75,7 @@ Welcome to the **MentorHub Back-End**. This Node.js back-end handles API request
 ## 🚀 Setting Up Local Development
 
 ### **Prerequisites**
+
 - **Node.js 18+** ([Download here](https://nodejs.org/))
 - **MongoDB 6+** ([MongoDB Atlas](https://www.mongodb.com/cloud/atlas) or local installation)
 - **npm** or **yarn** package manager
@@ -75,12 +84,14 @@ Welcome to the **MentorHub Back-End**. This Node.js back-end handles API request
 
 1. **Create a project folder** to hold both front-end and back-end repositories
 2. **Clone this repository:**
+
    ```bash
    git clone https://github.com/Code-the-Dream-School/jj-practicum-team-2-back.git
    cd jj-practicum-team-2-back
    ```
 
 3. **Install dependencies:**
+
    ```bash
    npm install
    ```
@@ -88,6 +99,7 @@ Welcome to the **MentorHub Back-End**. This Node.js back-end handles API request
 4. **Create environment file** (see [Environment Variables](#-environment-variables) section)
 
 5. **Start the development server:**
+
    ```bash
    npm run dev
    ```
@@ -121,6 +133,7 @@ FRONTEND_URL=http://localhost:5173
 ```
 
 ### **Required Environment Variables:**
+
 - `MONGO_URI` – MongoDB connection string (Atlas or local)
 - `JWT_SECRET` – Secret key for JWT token generation (min. 32 characters)
 - `JWT_RESET_SECRET` – Separate secret for password reset tokens
@@ -131,42 +144,43 @@ FRONTEND_URL=http://localhost:5173
 
 ### **Authentication Endpoints**
 
-| Method | Endpoint | Description | Access |
-|--------|----------|-------------|---------|
-| `POST` | `/api/v1/auth/register` | User registration | Public |
-| `POST` | `/api/v1/auth/login` | User login | Public |
-| `DELETE` | `/api/v1/auth/logout` | User logout | Auth Required |
-| `GET` | `/api/v1/auth/me` | Get current user | Auth Required |
-| `POST` | `/api/v1/auth/forgot-password` | Request password reset | Public |
-| `POST` | `/api/v1/auth/reset-password` | Reset password | Public |
+| Method   | Endpoint                       | Description            | Access        |
+| -------- | ------------------------------ | ---------------------- | ------------- |
+| `POST`   | `/api/v1/auth/register`        | User registration      | Public        |
+| `POST`   | `/api/v1/auth/login`           | User login             | Public        |
+| `DELETE` | `/api/v1/auth/logout`          | User logout            | Auth Required |
+| `GET`    | `/api/v1/auth/me`              | Get current user       | Auth Required |
+| `POST`   | `/api/v1/auth/forgot-password` | Request password reset | Public        |
+| `POST`   | `/api/v1/auth/reset-password`  | Reset password         | Public        |
 
 ### **Session Management**
 
-| Method | Endpoint | Description | Access |
-|--------|----------|-------------|---------|
-| `GET` | `/api/v1/sessions/student-dashboard` | Student dashboard data | Student |
-| `GET` | `/api/v1/sessions/mentor-dashboard` | Mentor dashboard data | Mentor |
-| `POST` | `/api/v1/sessions` | Create new session | Mentor |
-| `GET` | `/api/v1/sessions/:id` | Get session details | Auth Required |
-| `PUT` | `/api/v1/sessions/:id` | Update session | Mentor |
-| `DELETE` | `/api/v1/sessions/:id` | Delete session | Mentor |
-| `POST` | `/api/v1/sessions/:id/register` | Register for session | Student |
-| `DELETE` | `/api/v1/sessions/:id/unregister` | Unregister from session | Student |
-| `POST` | `/api/v1/sessions/:id/attendance` | Mark attendance | Mentor |
-| `PUT` | `/api/v1/sessions/:id/status` | Update session status | Mentor |
+| Method   | Endpoint                             | Description             | Access        |
+| -------- | ------------------------------------ | ----------------------- | ------------- |
+| `GET`    | `/api/v1/sessions/student-dashboard` | Student dashboard data  | Student       |
+| `GET`    | `/api/v1/sessions/mentor-dashboard`  | Mentor dashboard data   | Mentor        |
+| `POST`   | `/api/v1/sessions`                   | Create new session      | Mentor        |
+| `GET`    | `/api/v1/sessions/:id`               | Get session details     | Auth Required |
+| `PUT`    | `/api/v1/sessions/:id`               | Update session          | Mentor        |
+| `DELETE` | `/api/v1/sessions/:id`               | Delete session          | Mentor        |
+| `POST`   | `/api/v1/sessions/:id/register`      | Register for session    | Student       |
+| `DELETE` | `/api/v1/sessions/:id/unregister`    | Unregister from session | Student       |
+| `POST`   | `/api/v1/sessions/:id/attendance`    | Mark attendance         | Mentor        |
+| `PUT`    | `/api/v1/sessions/:id/status`        | Update session status   | Mentor        |
 
 ### **User Management**
 
-| Method | Endpoint | Description | Access |
-|--------|----------|-------------|---------|
-| `GET` | `/api/v1/user/myProfile` | Get own profile | Auth Required |
-| `GET` | `/api/v1/user/:id` | Get user profile | Auth Required |
-| `PUT` | `/api/v1/user/:id` | Update user profile | Owner/Admin |
-| `DELETE` | `/api/v1/user/:id` | Delete user | Admin |
+| Method   | Endpoint                 | Description         | Access        |
+| -------- | ------------------------ | ------------------- | ------------- |
+| `GET`    | `/api/v1/user/myProfile` | Get own profile     | Auth Required |
+| `GET`    | `/api/v1/user/:id`       | Get user profile    | Auth Required |
+| `PUT`    | `/api/v1/user/:id`       | Update user profile | Owner/Admin   |
+| `DELETE` | `/api/v1/user/:id`       | Delete user         | Admin         |
 
 ### **Example API Responses**
 
 **Session Creation:**
+
 ```json
 {
   "_id": "session_id",
@@ -183,6 +197,7 @@ FRONTEND_URL=http://localhost:5173
 ```
 
 **Student Dashboard:**
+
 ```json
 {
   "thisWeek": {
@@ -201,18 +216,19 @@ FRONTEND_URL=http://localhost:5173
 
 ## 👥 Authors
 
-| Role | Developer | GitHub |
-|------|-----------|---------|
-| **Backend** | Daria Sidorko | [@DariaSidorko](https://github.com/DariaSidorko) |
-| **Full Stack** | Kseniia Zakharova | [@Ligo-code](https://github.com/Ligo-code) |
-| **Frontend** | Des McCl | [@desmccl](https://github.com/desmccl) |
-| **Frontend** | Aman Leg | [@leg-aman](https://github.com/leg-aman) |
+| Role           | Developer         | GitHub                                           |
+| -------------- | ----------------- | ------------------------------------------------ |
+| **Backend**    | Daria Sidorko     | [@DariaSidorko](https://github.com/DariaSidorko) |
+| **Full Stack** | Kseniia Zakharova | [@Ligo-code](https://github.com/Ligo-code)       |
+| **Frontend**   | Des McCl          | [@desmccl](https://github.com/desmccl)           |
+| **Frontend**   | Aman Leg          | [@leg-aman](https://github.com/leg-aman)         |
 
 ---
 
 ## 📞 Support
 
 If you encounter any issues:
+
 1. Check the [Issues](https://github.com/Code-the-Dream-School/jj-practicum-team-2-back/issues) page
 2. Review the API documentation above
 3. Contact the development team

@@ -1,6 +1,10 @@
 require('dotenv').config();
 const express = require('express');
 const app = express();
+
+// Trust proxy - MUST be set before any middleware that reads IP/protocol
+app.set('trust proxy', 1);
+
 const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const favicon = require('express-favicon');
@@ -8,10 +12,11 @@ const logger = require('morgan');
 
 // CORS configuration for cookie-based authentication
 const corsOptions = {
-  origin: ['http://localhost:5173', process.env.FRONTEND_URL].filter(Boolean), // Remove any undefined values
-  credentials: true, // Allow credentials (cookies) to be sent
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  origin: ['http://localhost:5173', 'https://mentorhub-nmn2.onrender.com'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Set-Cookie'],
 };
 
 app.use(cors(corsOptions));

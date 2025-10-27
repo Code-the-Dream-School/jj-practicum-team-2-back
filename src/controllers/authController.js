@@ -34,6 +34,7 @@ exports.register = async (req, res) => {
 
     return res.status(201).json({
       message: 'User registered successfully',
+      token: token, // Add token to response for Safari fallback
       user: {
         id: user._id,
         email: user.email,
@@ -78,15 +79,27 @@ exports.login = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
-    const isMatch = await user.comparePassword(password); // use model method
+    const isMatch = await user.comparePassword(password);
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
     const token = generateToken(user._id, '7d', 'auth', user.role);
 
+    // Debug logging for production
+    if (process.env.NODE_ENV === 'production') {
+      console.log('Login Debug:', {
+        userEmail: email,
+        tokenGenerated: !!token,
+        origin: req.headers.origin,
+        userAgent: req.headers['user-agent']?.substring(0, 50),
+      });
+    }
+
+    // Send token in both cookies and response body for Safari fallback
     attachCookiesToResponse({ res, user }, token);
 
     return res.json({
       message: 'Logged in successfully',
+      token: token, // Add token to response for Safari
       user: {
         email: user.email,
         firstName: user.firstName,
@@ -107,10 +120,10 @@ exports.logout = (req, res) => {
   try {
     res.clearCookie('token', {
       httpOnly: true,
-      expires: new Date(Date.now()),
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
+      secure: true, // Always true for HTTPS behind proxy
+      sameSite: 'None', // Must match the original cookie settings
       path: '/',
+      signed: true,
     });
     return res.json({ message: 'Logged out successfully' });
   } catch (err) {

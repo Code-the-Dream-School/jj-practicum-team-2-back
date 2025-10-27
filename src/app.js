@@ -8,15 +8,58 @@ const logger = require('morgan');
 
 // CORS configuration for cookie-based authentication
 const corsOptions = {
-  origin: ['http://localhost:5173', process.env.FRONTEND_URL].filter(Boolean), // Remove any undefined values
-  credentials: true, // Allow credentials (cookies) to be sent
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  origin: function (origin, callback) {
+    // In production, require origin for security
+    if (!origin && process.env.NODE_ENV === 'production') {
+      return callback(new Error('Not allowed by CORS - no origin in production'));
+    }
+
+    // In development, allow requests without origin (e.g., Postman)
+    if (!origin && process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+
+    const allowedOrigins = [
+      'http://localhost:5173',
+      'http://localhost:3000', // alternative development port
+      'https://mentorhub-nmn2.onrender.com',
+      process.env.FRONTEND_URL,
+    ].filter(Boolean);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    // Log only in development for debugging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('CORS blocked origin:', origin);
+    }
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie'],
+  exposedHeaders: ['Set-Cookie'],
+  // Additional security settings
+  maxAge: 86400, // 24 hours preflight cache
+  optionsSuccessStatus: 200, // for older browsers
 };
 
 app.use(cors(corsOptions));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+
+app.use((req, res, next) => {
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+});
+
 app.use(logger('dev'));
 app.use(express.static('public'));
 app.use(favicon(__dirname + '/public/favicon.ico'));
@@ -56,7 +99,6 @@ app.use((err, req, res, _next) => {
       method: req.method,
     });
   } else {
-    // In production, only log generic error info
     console.error('Server error occurred:', {
       path: req.path,
       method: req.method,
